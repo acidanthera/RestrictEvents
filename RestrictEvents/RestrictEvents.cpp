@@ -33,6 +33,7 @@ struct RestrictEventsPolicy {
 
 		static const char *procBlacklist[] {
 			"/System/Library/CoreServices/MemorySlotNotification",
+			"/System/Library/CoreServices/ExpansionSlotNotification",
 			"/usr/libexec/dp2hdmiupdater",
 			"/usr/libexec/efiupdater",
 			"/usr/libexec/firmwarecheckers/eficheck/eficheck",
