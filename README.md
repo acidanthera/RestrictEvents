@@ -6,6 +6,7 @@ RestrictEvents
 Kernel extension for blocking unwanted processes causing compatibility issues on different hardware. Currently includes:
 
 - `/System/Library/CoreServices/MemorySlotNotification`
+- `/System/Library/CoreServices/ExpansionSlotNotification`
 - `/usr/libexec/dp2hdmiupdater`
 - `/usr/libexec/efiupdater`
 - `/usr/libexec/firmwarecheckers/eficheck/eficheck`
