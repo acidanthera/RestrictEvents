@@ -34,15 +34,7 @@ struct RestrictEventsPolicy {
 		static const char *procBlacklist[] {
 			"/System/Library/CoreServices/ExpansionSlotNotification",
 			"/System/Library/CoreServices/MemorySlotNotification",
-			"/usr/libexec/FirmwareUpdateLauncher",
-			"/usr/libexec/dp2hdmiupdater",
-			"/usr/libexec/efiupdater",
 			"/usr/libexec/firmwarecheckers/eficheck/eficheck",
-			"/usr/libexec/sdfwupdater",
-			"/usr/libexec/smcupdater",
-			"/usr/libexec/ssdupdater",
-			"/usr/libexec/usbcupdater",
-			"/usr/libexec/vbiosupdater",
 		};
 
 		char pathbuf[MAXPATHLEN];
