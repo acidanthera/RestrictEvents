@@ -5,8 +5,9 @@ RestrictEvents
 
 [Lilu](https://github.com/acidanthera/Lilu) Kernel extension for blocking unwanted processes causing compatibility issues on different hardware. Currently includes:
 
-- `/System/Library/CoreServices/MemorySlotNotification`
 - `/System/Library/CoreServices/ExpansionSlotNotification`
+- `/System/Library/CoreServices/MemorySlotNotification`
+- `/usr/libexec/FirmwareUpdateLauncher`
 - `/usr/libexec/dp2hdmiupdater`
 - `/usr/libexec/efiupdater`
 - `/usr/libexec/firmwarecheckers/eficheck/eficheck`

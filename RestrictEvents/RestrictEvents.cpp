@@ -32,8 +32,9 @@ struct RestrictEventsPolicy {
 	static int policyCheckExecve(kauth_cred_t cred, struct vnode *vp, struct vnode *scriptvp, struct label *vnodelabel, struct label *scriptlabel, struct label *execlabel, struct componentname *cnp, u_int *csflags, void *macpolicyattr, size_t macpolicyattrlen) {
 
 		static const char *procBlacklist[] {
-			"/System/Library/CoreServices/MemorySlotNotification",
 			"/System/Library/CoreServices/ExpansionSlotNotification",
+			"/System/Library/CoreServices/MemorySlotNotification",
+			"/usr/libexec/FirmwareUpdateLauncher",
 			"/usr/libexec/dp2hdmiupdater",
 			"/usr/libexec/efiupdater",
 			"/usr/libexec/firmwarecheckers/eficheck/eficheck",
