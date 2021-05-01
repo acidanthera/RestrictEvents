@@ -11,6 +11,11 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_policy.hpp>
 
+extern "C" {
+#include <i386/pmCPU.h>
+}
+
+
 static const char *bootargOff[] {
 	"-revoff"
 };
@@ -26,9 +31,21 @@ static const char *bootargBeta[] {
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidatePage;
 
+static const char *dscPath;
 static const void *memFindPatch;
 static const void *memReplPatch;
 static size_t memFindSize;
+
+static const char *cpuFindPatch;
+static size_t cpuFindSize;
+static uint32_t cpuReplPatch[12];
+static size_t cpuReplSize;
+
+static bool needsCpuNamePatch;
+static bool needsUnlockCoreCount;
+static uint8_t findUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static uint8_t replUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1C };
+static pmCallBacks_t pmCallbacks;
 
 struct RestrictEventsPolicy {
 
@@ -77,8 +94,97 @@ struct RestrictEventsPolicy {
 					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
 					return;
 				}
+			} else if (cpuReplPatch[0] != '\0' && UNLIKELY(strcmp(path, dscPath) == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
+					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch));
+					return;
+				} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
+					DBGLOG("rev", "patched core count in AppleSystemInfo");
+					return;
+				}
 			}
 		}
+	}
+
+	/**
+	 * Return true when CPU brand string patch is needed
+	 */
+	static bool needsCpuNamePatch() {
+		// Default to true on non-Intel
+		uint32_t b = 0, c = 0, d = 0;
+		CPUInfo::getCpuid(0, 0, nullptr, &b, &c, &d);
+		int patchCpu = b != CPUInfo::signature_INTEL_ebx || c != CPUInfo::signature_INTEL_ecx || d != CPUInfo::signature_INTEL_edx;
+		PE_parse_boot_argn("revcpu", &patchCpu, sizeof(patchCpu));
+		return patchCpu != 0;
+	}
+
+	/**
+	 * Compute CPU brand string patch
+	 */
+	static void calculatePatchedBrandString() {
+		if (!PE_parse_boot_argn("revcpuname", cpuReplPatch, sizeof(cpuReplPatch))) {
+			CPUInfo::getCpuid(0x80000002, 0, &cpuReplPatch[0], &cpuReplPatch[1], &cpuReplPatch[2], &cpuReplPatch[3]);
+			CPUInfo::getCpuid(0x80000003, 0, &cpuReplPatch[4], &cpuReplPatch[5], &cpuReplPatch[6], &cpuReplPatch[7]);
+			CPUInfo::getCpuid(0x80000004, 0, &cpuReplPatch[8], &cpuReplPatch[9], &cpuReplPatch[10], &cpuReplPatch[11]);
+		}
+
+		char *brandStr = reinterpret_cast<char *>(&cpuReplPatch[0]);
+		brandStr[sizeof(cpuReplPatch) - 1] = '\0';
+		if (brandStr[0] == '\0') return;
+		cpuReplSize = strlen(brandStr) + 1;
+
+		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
+		uint8_t cc = 0;
+		auto core = pmCallbacks.GetPkgRoot()->cores;
+		while (core != nullptr) {
+			if (core->lcpus) cc++;
+			core = core->next_in_pkg;
+		}
+
+		DBGLOG("rev", "requested to patch CPU name to %s with %u", brandStr, cc);
+
+		switch (cc) {
+			case 2:
+				cpuFindPatch = "Dual-Core Intel Core i5";
+				break;
+			case 4:
+				cpuFindPatch = "Quad-Core Intel Core i5";
+				break;
+			case 6:
+				cpuFindPatch = "6-Core Intel Core i5";
+				break;
+			case 8:
+				cpuFindPatch = "8-Core Intel Xeon W";
+				break;
+			case 10:
+				cpuFindPatch = "10-Core Intel Xeon W";
+				break;
+			case 12:
+				cpuFindPatch = "12-Core Intel Xeon W";
+				break;
+			case 14:
+				cpuFindPatch = "14-Core Intel Xeon W";
+				break;
+			case 16:
+				cpuFindPatch = "16-Core Intel Xeon W";
+				break;
+			case 18:
+				cpuFindPatch = "18-Core Intel Xeon W";
+				break;
+			case 24:
+				cpuFindPatch = "24-Core Intel Xeon W";
+				break;
+			case 28:
+				cpuFindPatch = "28-Core Intel Xeon W";
+				break;
+			default:
+				replUnlockCoreCount[16] = cc;
+				needsUnlockCoreCount = true;
+				cpuFindPatch = "28-Core Intel Xeon W";
+				break;
+		}
+
+		cpuFindSize = strlen(cpuFindPatch) + 1;
 	}
 
 	/**
@@ -135,7 +241,7 @@ PluginConfiguration ADDPR(config) {
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		restrictEventsPolicy.policy.registerPolicy();
 
-		if (!checkKernelArgument("-revnopatch")) {
+		if (!checkKernelArgument("-revnopatch") && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			auto di = BaseDeviceInfo::get();
 			// Rename existing values to invalid ones to avoid matching.
 			if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
@@ -150,8 +256,12 @@ PluginConfiguration ADDPR(config) {
 				DBGLOG("rev", "detected MBA");
 			}
 
-			if (memFindPatch != nullptr) {
+			needsCpuNamePatch = RestrictEventsPolicy::needsCpuNamePatch();
+			if (memFindPatch != nullptr || needsCpuNamePatch) {
+				dscPath = UserPatcher::getSharedCachePath();;
+
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
+					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidatePage);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1)) {
 						SYSLOG("rev", "failed to route cs validation pages");
