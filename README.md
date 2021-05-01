@@ -26,6 +26,8 @@ _Note_: Apple CPU identifier must be `<0F01>` for 8 core CPUs or higher and `<06
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
 
+_Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` NVRAM variables work the same as the boot arguments, but have lower priority.
+
 #### Credits
 - [Apple](https://www.apple.com) for macOS  
 - [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) and great help in implementing some features 

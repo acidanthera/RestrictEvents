@@ -8,6 +8,8 @@
 #include <IOKit/IOService.h>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>
+#include <Headers/kern_nvram.hpp>
+#include <Headers/kern_efi.hpp>
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_policy.hpp>
 
@@ -106,6 +108,41 @@ struct RestrictEventsPolicy {
 		}
 	}
 
+	static bool readNvramVariable(const char *fullName, const char16_t *unicodeName, const EFI_GUID *guid, void *dst, size_t max) {
+		memset(dst, 0, max);
+
+		// Firstry try the os-provided NVStorage. If it is loaded, it is not safe to call EFI services.
+		NVStorage storage;
+		if (storage.init()) {
+			uint32_t size = 0;
+			auto buf = storage.read(fullName, size, NVStorage::OptRaw);
+			if (buf) {
+				// Do not care if the value is a little bigger.
+				if (size <= max) {
+					memcpy(dst, buf, size);
+				}
+				Buffer::deleter(buf);
+			}
+
+			storage.deinit();
+
+			return buf && size <= max;
+		}
+
+		// Otherwise use EFI services if available.
+		auto rt = EfiRuntimeServices::get(true);
+		if (rt) {
+			uint64_t size = max;
+			uint32_t attr = 0;
+			auto status = rt->getVariable(unicodeName, guid, &attr, &size, dst);
+
+			rt->put();
+			return status == EFI_SUCCESS && size <= max;
+		}
+
+		return false;
+	}
+
 	/**
 	 * Return true when CPU brand string patch is needed
 	 */
@@ -114,15 +151,20 @@ struct RestrictEventsPolicy {
 		uint32_t b = 0, c = 0, d = 0;
 		CPUInfo::getCpuid(0, 0, nullptr, &b, &c, &d);
 		int patchCpu = b != CPUInfo::signature_INTEL_ebx || c != CPUInfo::signature_INTEL_ecx || d != CPUInfo::signature_INTEL_edx;
-		PE_parse_boot_argn("revcpu", &patchCpu, sizeof(patchCpu));
-		return patchCpu != 0;
-	}
+		if (PE_parse_boot_argn("revcpu", &patchCpu, sizeof(patchCpu)))
+			DBGLOG("rev", "read revcpu override from boot-args - %d", patchCpu);
+		else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revcpu"), u"revcpu", &EfiRuntimeServices::LiluVendorGuid, &patchCpu, sizeof(patchCpu)))
+			DBGLOG("rev", "read revcpu override from NVRAM - %d", patchCpu);
+		else
+			DBGLOG("rev", "using CPUID-based revcpu value - %d", patchCpu);
+		if (patchCpu == 0) return false;
 
-	/**
-	 * Compute CPU brand string patch
-	 */
-	static void calculatePatchedBrandString() {
-		if (!PE_parse_boot_argn("revcpuname", cpuReplPatch, sizeof(cpuReplPatch))) {
+		if (PE_parse_boot_argn("revcpuname", cpuReplPatch, sizeof(cpuReplPatch))) {
+			DBGLOG("rev", "read revcpuname from boot-args");
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revcpuname"), u"revcpuname", &EfiRuntimeServices::LiluVendorGuid, cpuReplPatch, sizeof(cpuReplPatch))) {
+			DBGLOG("rev", "read revcpuname from NVRAM");
+		} else {
+			DBGLOG("rev", "read revcpuname from default");
 			CPUInfo::getCpuid(0x80000002, 0, &cpuReplPatch[0], &cpuReplPatch[1], &cpuReplPatch[2], &cpuReplPatch[3]);
 			CPUInfo::getCpuid(0x80000003, 0, &cpuReplPatch[4], &cpuReplPatch[5], &cpuReplPatch[6], &cpuReplPatch[7]);
 			CPUInfo::getCpuid(0x80000004, 0, &cpuReplPatch[8], &cpuReplPatch[9], &cpuReplPatch[10], &cpuReplPatch[11]);
@@ -130,18 +172,24 @@ struct RestrictEventsPolicy {
 
 		char *brandStr = reinterpret_cast<char *>(&cpuReplPatch[0]);
 		brandStr[sizeof(cpuReplPatch) - 1] = '\0';
-		if (brandStr[0] == '\0') return;
+		if (brandStr[0] == '\0') return false;
 		cpuReplSize = strlen(brandStr) + 1;
 
+		DBGLOG("rev", "requested to patch CPU name to %s", brandStr);
+		return true;
+	}
+
+	/**
+	 * Compute CPU brand string patch
+	 */
+	static void calculatePatchedBrandString() {
 		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
 		uint8_t cc = 0;
 		auto core = pmCallbacks.GetPkgRoot()->cores;
 		while (core != nullptr) {
-			if (core->lcpus) cc++;
+			cc++;
 			core = core->next_in_pkg;
 		}
-
-		DBGLOG("rev", "requested to patch CPU name to %s with %u", brandStr, cc);
 
 		switch (cc) {
 			case 2:
@@ -185,6 +233,7 @@ struct RestrictEventsPolicy {
 		}
 
 		cpuFindSize = strlen(cpuFindPatch) + 1;
+		DBGLOG("rev", "choise %s patch for %u core CPU", cpuFindPatch, cc);
 	}
 
 	/**
