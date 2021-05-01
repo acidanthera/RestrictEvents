@@ -109,8 +109,6 @@ struct RestrictEventsPolicy {
 	}
 
 	static bool readNvramVariable(const char *fullName, const char16_t *unicodeName, const EFI_GUID *guid, void *dst, size_t max) {
-		memset(dst, 0, max);
-
 		// Firstry try the os-provided NVStorage. If it is loaded, it is not safe to call EFI services.
 		NVStorage storage;
 		if (storage.init()) {
