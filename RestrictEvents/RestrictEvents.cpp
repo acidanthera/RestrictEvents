@@ -7,6 +7,7 @@
 
 #include <IOKit/IOService.h>
 #include <Headers/kern_api.hpp>
+#include <Headers/kern_devinfo.hpp>
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_policy.hpp>
 
