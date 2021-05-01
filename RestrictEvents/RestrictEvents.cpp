@@ -23,6 +23,11 @@ static const char *bootargBeta[] {
 };
 
 static bool verboseProcessLogging;
+static mach_vm_address_t orgCsValidatePage;
+
+static const void *memFindPatch;
+static const void *memReplPatch;
+static size_t memFindSize;
 
 struct RestrictEventsPolicy {
 
@@ -54,6 +59,25 @@ struct RestrictEventsPolicy {
 		}
 
 		return 0;
+	}
+
+	/**
+	 *  Handler to patch userspace
+	 */
+	static void csValidatePage(vnode *vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
+		FunctionCast(csValidatePage, orgCsValidatePage)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
+		char path[PATH_MAX];
+		int pathlen = PATH_MAX;
+		if (vn_getpath(vp, path, &pathlen) == 0) {
+			//DBGLOG("rev", "csValidatePage %s", path);
+
+			if (memFindPatch != nullptr && UNLIKELY(strcmp(path, "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information") == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, memFindPatch, memFindSize, memReplPatch, memFindSize))) {
+					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
+					return;
+				}
+			}
+		}
 	}
 
 	/**
@@ -109,5 +133,30 @@ PluginConfiguration ADDPR(config) {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		restrictEventsPolicy.policy.registerPolicy();
+
+		if (!checkKernelArgument("-revnopatch")) {
+			auto di = BaseDeviceInfo::get();
+			// Rename existing values to invalid ones to avoid matching.
+			if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
+				memFindPatch = "MacPro7,1";
+				memReplPatch = "HacPro7,1";
+				memFindSize  = sizeof("MacPro7,1");
+				DBGLOG("rev", "detected MP71");
+			} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
+				memFindPatch = "MacBookAir";
+				memReplPatch = "HacBookAir";
+				memFindSize  = sizeof("MacBookAir");
+				DBGLOG("rev", "detected MBA");
+			}
+
+			if (memFindPatch != nullptr) {
+				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
+					KernelPatcher::RouteRequest csRoute("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidatePage);
+					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1)) {
+						SYSLOG("rev", "failed to route cs validation pages");
+					}
+				});
+			}
+		}
 	}
 };
