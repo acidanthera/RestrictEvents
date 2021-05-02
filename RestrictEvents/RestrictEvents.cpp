@@ -31,7 +31,7 @@ static const char *bootargBeta[] {
 };
 
 static bool verboseProcessLogging;
-static mach_vm_address_t orgCsValidatePage;
+static mach_vm_address_t orgCsValidateFunc;
 
 static const char *dscPath;
 static const void *memFindPatch;
@@ -82,30 +82,45 @@ struct RestrictEventsPolicy {
 	}
 
 	/**
-	 *  Handler to patch userspace
+	 *  Common userspace replacement code
 	 */
-	static void csValidatePage(vnode *vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
-		FunctionCast(csValidatePage, orgCsValidatePage)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
+	static void performReplacements(vnode_t vp, const void *data, vm_size_t size) {
 		char path[PATH_MAX];
 		int pathlen = PATH_MAX;
 		if (vn_getpath(vp, path, &pathlen) == 0) {
 			//DBGLOG("rev", "csValidatePage %s", path);
 
 			if (memFindPatch != nullptr && UNLIKELY(strcmp(path, "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information") == 0)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, memFindPatch, memFindSize, memReplPatch, memFindSize))) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, memFindSize, memReplPatch, memFindSize))) {
 					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
 					return;
 				}
 			} else if (cpuReplPatch[0] != '\0' && UNLIKELY(strcmp(path, dscPath) == 0)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
 					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch));
 					return;
-				} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
+				} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
 					DBGLOG("rev", "patched core count in AppleSystemInfo");
 					return;
 				}
 			}
 		}
+	}
+
+	/**
+	 *  Handler to patch userspace for Big Sur
+	 */
+	static void csValidatePage(vnode_t vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
+		FunctionCast(csValidatePage, orgCsValidateFunc)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
+		performReplacements(vp, data, PAGE_SIZE);
+	}
+
+	/**
+	 *  Handler to patch userspace prior to Big Sur
+	 */
+	static void csValidateRange(vnode_t vp, memory_object_t pager, memory_object_offset_t offset, const void *data, vm_size_t size, unsigned *result) {
+		FunctionCast(csValidateRange, orgCsValidateFunc)(vp, pager, offset, data, size, result);
+		performReplacements(vp, data, size);
 	}
 
 	static bool readNvramVariable(const char *fullName, const char16_t *unicodeName, const EFI_GUID *guid, void *dst, size_t max) {
@@ -309,7 +324,10 @@ PluginConfiguration ADDPR(config) {
 
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
-					KernelPatcher::RouteRequest csRoute("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidatePage);
+					KernelPatcher::RouteRequest csRoute =
+						getKernelVersion() >= KernelVersion::BigSur ?
+						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidateFunc) :
+						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1)) {
 						SYSLOG("rev", "failed to route cs validation pages");
 					}
