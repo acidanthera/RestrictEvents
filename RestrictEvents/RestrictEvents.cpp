@@ -17,7 +17,6 @@ extern "C" {
 #include <i386/pmCPU.h>
 }
 
-
 static const char *bootargOff[] {
 	"-revoff"
 };
@@ -38,9 +37,10 @@ static const void *memFindPatch;
 static const void *memReplPatch;
 static size_t memFindSize;
 
+static constexpr size_t CpuSignatureWords = 12;
 static const char *cpuFindPatch;
 static size_t cpuFindSize;
-static uint32_t cpuReplPatch[12];
+static uint8_t cpuReplPatch[CpuSignatureWords * sizeof(uint32_t) + 1];
 static size_t cpuReplSize;
 
 static bool needsCpuNamePatch;
@@ -95,9 +95,9 @@ struct RestrictEventsPolicy {
 					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
 					return;
 				}
-			} else if (cpuReplPatch[0] != '\0' && UNLIKELY(strcmp(path, dscPath) == 0)) {
+			} else if (cpuReplSize > 0 && UNLIKELY(strcmp(path, dscPath) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
-					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch));
+					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch + 1));
 					return;
 				} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
 					DBGLOG("rev", "patched core count in AppleSystemInfo");
@@ -172,21 +172,24 @@ struct RestrictEventsPolicy {
 			DBGLOG("rev", "using CPUID-based revcpu value - %d", patchCpu);
 		if (patchCpu == 0) return false;
 
-		if (PE_parse_boot_argn("revcpuname", cpuReplPatch, sizeof(cpuReplPatch))) {
+		uint32_t patch[CpuSignatureWords] {};
+		if (PE_parse_boot_argn("revcpuname", patch, sizeof(patch))) {
 			DBGLOG("rev", "read revcpuname from boot-args");
-		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revcpuname"), u"revcpuname", &EfiRuntimeServices::LiluVendorGuid, cpuReplPatch, sizeof(cpuReplPatch))) {
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revcpuname"), u"revcpuname", &EfiRuntimeServices::LiluVendorGuid, patch, sizeof(patch))) {
 			DBGLOG("rev", "read revcpuname from NVRAM");
 		} else {
 			DBGLOG("rev", "read revcpuname from default");
-			CPUInfo::getCpuid(0x80000002, 0, &cpuReplPatch[0], &cpuReplPatch[1], &cpuReplPatch[2], &cpuReplPatch[3]);
-			CPUInfo::getCpuid(0x80000003, 0, &cpuReplPatch[4], &cpuReplPatch[5], &cpuReplPatch[6], &cpuReplPatch[7]);
-			CPUInfo::getCpuid(0x80000004, 0, &cpuReplPatch[8], &cpuReplPatch[9], &cpuReplPatch[10], &cpuReplPatch[11]);
+			CPUInfo::getCpuid(0x80000002, 0, &patch[0], &patch[1], &patch[2], &patch[3]);
+			CPUInfo::getCpuid(0x80000003, 0, &patch[4], &patch[5], &patch[6], &patch[7]);
+			CPUInfo::getCpuid(0x80000004, 0, &patch[8], &patch[9], &patch[10], &patch[11]);
 		}
 
-		char *brandStr = reinterpret_cast<char *>(&cpuReplPatch[0]);
-		brandStr[sizeof(cpuReplPatch) - 1] = '\0';
+		char *brandStr = reinterpret_cast<char *>(&patch[0]);
+		brandStr[sizeof(patch) - 1] = '\0';
 		if (brandStr[0] == '\0') return false;
-		cpuReplSize = strlen(brandStr) + 1;
+		auto len = strlen(brandStr);
+		memcpy(&cpuReplPatch[1], patch, len);
+		cpuReplSize = len + 2;
 
 		DBGLOG("rev", "requested to patch CPU name to %s", brandStr);
 		return true;
@@ -206,47 +209,58 @@ struct RestrictEventsPolicy {
 
 		switch (cc) {
 			case 2:
-				cpuFindPatch = "Dual-Core Intel Core i5";
+				cpuFindPatch = "\0Dual-Core Intel Core i5";
+				cpuFindSize = sizeof("\0Dual-Core Intel Core i5");
 				break;
 			case 4:
-				cpuFindPatch = "Quad-Core Intel Core i5";
+				cpuFindPatch = "\0Quad-Core Intel Core i5";
+				cpuFindSize = sizeof("\0Quad-Core Intel Core i5");
 				break;
 			case 6:
-				cpuFindPatch = "6-Core Intel Core i5";
+				cpuFindPatch = "\06-Core Intel Core i5";
+				cpuFindSize = sizeof("\06-Core Intel Core i5");
 				break;
 			case 8:
-				cpuFindPatch = "8-Core Intel Xeon W";
+				cpuFindPatch = "\08-Core Intel Xeon W";
+				cpuFindSize = sizeof("\08-Core Intel Xeon W");
 				break;
 			case 10:
-				cpuFindPatch = "10-Core Intel Xeon W";
+				cpuFindPatch = "\010-Core Intel Xeon W";
+				cpuFindSize = sizeof("\010-Core Intel Xeon W");
 				break;
 			case 12:
-				cpuFindPatch = "12-Core Intel Xeon W";
+				cpuFindPatch = "\012-Core Intel Xeon W";
+				cpuFindSize = sizeof("\012-Core Intel Xeon W");
 				break;
 			case 14:
-				cpuFindPatch = "14-Core Intel Xeon W";
+				cpuFindPatch = "\014-Core Intel Xeon W";
+				cpuFindSize = sizeof("\014-Core Intel Xeon W");
 				break;
 			case 16:
-				cpuFindPatch = "16-Core Intel Xeon W";
+				cpuFindPatch = "\016-Core Intel Xeon W";
+				cpuFindSize = sizeof("\016-Core Intel Xeon W");
 				break;
 			case 18:
-				cpuFindPatch = "18-Core Intel Xeon W";
+				cpuFindPatch = "\018-Core Intel Xeon W";
+				cpuFindSize = sizeof("\018-Core Intel Xeon W");
 				break;
 			case 24:
-				cpuFindPatch = "24-Core Intel Xeon W";
+				cpuFindPatch = "\024-Core Intel Xeon W";
+				cpuFindSize = sizeof("\024-Core Intel Xeon W");
 				break;
 			case 28:
-				cpuFindPatch = "28-Core Intel Xeon W";
+				cpuFindPatch = "\028-Core Intel Xeon W";
+				cpuFindSize = sizeof("\028-Core Intel Xeon W");
 				break;
 			default:
+				cpuFindPatch = "\028-Core Intel Xeon W";
+				cpuFindSize = sizeof("\028-Core Intel Xeon W");
 				replUnlockCoreCount[16] = cc;
 				needsUnlockCoreCount = true;
-				cpuFindPatch = "28-Core Intel Xeon W";
 				break;
 		}
 
-		cpuFindSize = strlen(cpuFindPatch) + 1;
-		DBGLOG("rev", "choise %s patch for %u core CPU", cpuFindPatch, cc);
+		DBGLOG("rev", "chosen %s patch for %u core CPU", cpuFindPatch + 1, cc);
 	}
 
 	/**
