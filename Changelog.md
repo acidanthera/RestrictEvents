@@ -2,6 +2,7 @@ RestrictEvents Changelog
 ========================
 #### v1.0.2
 - Fixed patching CPU brand string with 8 core configurations
+- Fixed detecting CPU core count on some CPU models
 
 #### v1.0.1
 - Disabled `MacPro7,1` RAM & PCI Expansion Slot UIs

@@ -195,10 +195,16 @@ struct RestrictEventsPolicy {
 		return true;
 	}
 
-	/**
-	 * Compute CPU brand string patch
-	 */
-	static void calculatePatchedBrandString() {
+	static uint32_t getCoreCount() {
+		// I think AMD patches bork something, so use direct cpuid reading on them.
+		// REF: https://github.com/acidanthera/bugtracker/issues/1625#issuecomment-831602457
+		uint32_t b = 0, c = 0, d = 0;
+		CPUInfo::getCpuid(0, 0, nullptr, &b, &c, &d);
+		if (b == CPUInfo::signature_AMD_ebx && c == CPUInfo::signature_AMD_ecx && d == CPUInfo::signature_AMD_edx) {
+			CPUInfo::getCpuid(0x80000008, 0, nullptr, nullptr, &c, nullptr);
+			return (c & 0xFF) + 1;
+		}
+
 		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
 		uint8_t cc = 0;
 		auto core = pmCallbacks.GetPkgRoot()->cores;
@@ -206,6 +212,15 @@ struct RestrictEventsPolicy {
 			cc++;
 			core = core->next_in_pkg;
 		}
+
+		return cc;
+	}
+
+	/**
+	 * Compute CPU brand string patch
+	 */
+	static void calculatePatchedBrandString() {
+		auto cc = getCoreCount();
 
 		switch (cc) {
 			case 2:
