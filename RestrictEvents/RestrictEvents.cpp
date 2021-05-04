@@ -196,21 +196,23 @@ struct RestrictEventsPolicy {
 	}
 
 	static uint32_t getCoreCount() {
-		// I think AMD patches bork something, so use direct cpuid reading on them.
+		// I think AMD patches bork the topology structure, go over all the packages assuming single CPU systems.
 		// REF: https://github.com/acidanthera/bugtracker/issues/1625#issuecomment-831602457
 		uint32_t b = 0, c = 0, d = 0;
 		CPUInfo::getCpuid(0, 0, nullptr, &b, &c, &d);
-		if (b == CPUInfo::signature_AMD_ebx && c == CPUInfo::signature_AMD_ecx && d == CPUInfo::signature_AMD_edx) {
-			CPUInfo::getCpuid(0x80000008, 0, nullptr, nullptr, &c, nullptr);
-			return (c & 0xFF) + 1;
-		}
+		bool isAMD = (b == CPUInfo::signature_AMD_ebx && c == CPUInfo::signature_AMD_ecx && d == CPUInfo::signature_AMD_edx);
 
 		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
 		uint8_t cc = 0;
-		auto core = pmCallbacks.GetPkgRoot()->cores;
-		while (core != nullptr) {
-			cc++;
-			core = core->next_in_pkg;
+		auto pkg = pmCallbacks.GetPkgRoot();
+		while (pkg != nullptr) {
+			auto core = pkg->cores;
+			while (core != nullptr) {
+				cc++;
+				core = core->next_in_pkg;
+			}
+			pkg = pkg->next;
+			if (!isAMD) break;
 		}
 
 		return cc;
@@ -224,52 +226,52 @@ struct RestrictEventsPolicy {
 
 		switch (cc) {
 			case 2:
-				cpuFindPatch = "\0Dual-Core Intel Core i5";
-				cpuFindSize = sizeof("\0Dual-Core Intel Core i5");
+				cpuFindPatch = "\0" "Dual-Core Intel Core i5";
+				cpuFindSize = sizeof("\0" "Dual-Core Intel Core i5");
 				break;
 			case 4:
-				cpuFindPatch = "\0Quad-Core Intel Core i5";
-				cpuFindSize = sizeof("\0Quad-Core Intel Core i5");
+				cpuFindPatch = "\0" "Quad-Core Intel Core i5";
+				cpuFindSize = sizeof("\0" "Quad-Core Intel Core i5");
 				break;
 			case 6:
-				cpuFindPatch = "\06-Core Intel Core i5";
-				cpuFindSize = sizeof("\06-Core Intel Core i5");
+				cpuFindPatch = "\0" "6-Core Intel Core i5";
+				cpuFindSize = sizeof("\0" "6-Core Intel Core i5");
 				break;
 			case 8:
-				cpuFindPatch = "\08-Core Intel Xeon W";
-				cpuFindSize = sizeof("\08-Core Intel Xeon W");
+				cpuFindPatch = "\0" "8-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "8-Core Intel Xeon W");
 				break;
 			case 10:
-				cpuFindPatch = "\010-Core Intel Xeon W";
-				cpuFindSize = sizeof("\010-Core Intel Xeon W");
+				cpuFindPatch = "\0" "10-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "10-Core Intel Xeon W");
 				break;
 			case 12:
-				cpuFindPatch = "\012-Core Intel Xeon W";
-				cpuFindSize = sizeof("\012-Core Intel Xeon W");
+				cpuFindPatch = "\0" "12-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "12-Core Intel Xeon W");
 				break;
 			case 14:
-				cpuFindPatch = "\014-Core Intel Xeon W";
-				cpuFindSize = sizeof("\014-Core Intel Xeon W");
+				cpuFindPatch = "\0" "14-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "14-Core Intel Xeon W");
 				break;
 			case 16:
-				cpuFindPatch = "\016-Core Intel Xeon W";
-				cpuFindSize = sizeof("\016-Core Intel Xeon W");
+				cpuFindPatch = "\0" "16-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "16-Core Intel Xeon W");
 				break;
 			case 18:
-				cpuFindPatch = "\018-Core Intel Xeon W";
-				cpuFindSize = sizeof("\018-Core Intel Xeon W");
+				cpuFindPatch = "\0" "18-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "18-Core Intel Xeon W");
 				break;
 			case 24:
-				cpuFindPatch = "\024-Core Intel Xeon W";
-				cpuFindSize = sizeof("\024-Core Intel Xeon W");
+				cpuFindPatch = "\0" "24-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "24-Core Intel Xeon W");
 				break;
 			case 28:
-				cpuFindPatch = "\028-Core Intel Xeon W";
-				cpuFindSize = sizeof("\028-Core Intel Xeon W");
+				cpuFindPatch = "\0" "28-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "28-Core Intel Xeon W");
 				break;
 			default:
-				cpuFindPatch = "\028-Core Intel Xeon W";
-				cpuFindSize = sizeof("\028-Core Intel Xeon W");
+				cpuFindPatch = "\0" "28-Core Intel Xeon W";
+				cpuFindSize = sizeof("\0" "28-Core Intel Xeon W");
 				replUnlockCoreCount[16] = cc;
 				needsUnlockCoreCount = true;
 				break;
