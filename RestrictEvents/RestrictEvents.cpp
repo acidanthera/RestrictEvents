@@ -203,7 +203,7 @@ struct RestrictEventsPolicy {
 		bool isAMD = (b == CPUInfo::signature_AMD_ebx && c == CPUInfo::signature_AMD_ecx && d == CPUInfo::signature_AMD_edx);
 
 		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
-		uint8_t cc = 0;
+		uint32_t cc = 0, pp = 0;
 		auto pkg = pmCallbacks.GetPkgRoot();
 		while (pkg != nullptr) {
 			auto core = pkg->cores;
@@ -211,6 +211,8 @@ struct RestrictEventsPolicy {
 				cc++;
 				core = core->next_in_pkg;
 			}
+			DBGLOG("rev", "calculated %u cores in pkg %u amd %d", cc, pp, isAMD);
+			pp++;
 			pkg = pkg->next;
 			if (!isAMD) break;
 		}
