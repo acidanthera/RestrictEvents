@@ -228,6 +228,10 @@ struct RestrictEventsPolicy {
 		auto cc = getCoreCount();
 
 		switch (cc) {
+			case 1:
+				cpuFindPatch = "\0" "Intel Core i5";
+				cpuFindSize = sizeof("\0" "Intel Core i5");
+				break;
 			case 2:
 				cpuFindPatch = "\0" "Dual-Core Intel Core i5";
 				cpuFindSize = sizeof("\0" "Dual-Core Intel Core i5");
