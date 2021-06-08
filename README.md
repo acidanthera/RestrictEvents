@@ -20,7 +20,7 @@ _Note_: Apple CPU identifier must be `<0F01>` for 8 core CPUs or higher and `<06
 #### Boot arguments
 - `-revoff` (or `-liluoff`) to disable
 - `-revdbg` (or `-liludbgall`) to enable verbose logging (in DEBUG builds)
-- `-revbeta` (or `-lilubetaall`) to enable on macOS older than 10.8 or newer than 11
+- `-revbeta` (or `-lilubetaall`) to enable on macOS older than 10.8 or newer than 12
 - `-revproc` to enable verbose process logging (in DEBUG builds)
 - `-revnopatch` to disable patching for userspace processes
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
