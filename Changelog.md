@@ -1,7 +1,7 @@
 RestrictEvents Changelog
 ========================
 #### v1.0.3
-- Added constants for 12.0 support
+- Added constants for macOS 12 support
 
 #### v1.0.2
 - Fixed patching CPU brand string with 8 core configurations
