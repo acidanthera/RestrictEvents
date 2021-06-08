@@ -335,7 +335,7 @@ PluginConfiguration ADDPR(config) {
 	bootargBeta,
 	arrsize(bootargBeta),
 	KernelVersion::MountainLion,
-	KernelVersion::BigSur,
+	KernelVersion::Monterey,
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");

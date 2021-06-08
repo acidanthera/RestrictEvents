@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.3
+- Added constants for 12.0 support
+
 #### v1.0.2
 - Fixed patching CPU brand string with 8 core configurations
 - Fixed detecting CPU core count on some CPU models
