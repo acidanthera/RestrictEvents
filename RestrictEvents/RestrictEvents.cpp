@@ -32,7 +32,6 @@ static const char *bootargBeta[] {
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
 
-static const char *dscPath;
 static const void *memFindPatch;
 static const void *memReplPatch;
 static size_t memFindSize;
@@ -95,7 +94,7 @@ struct RestrictEventsPolicy {
 					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
 					return;
 				}
-			} else if (cpuReplSize > 0 && UNLIKELY(strcmp(path, dscPath) == 0)) {
+			} else if (cpuReplSize > 0 && UserPatcher::matchSharedCachePath(path)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
 					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch + 1));
 					return;
@@ -358,8 +357,6 @@ PluginConfiguration ADDPR(config) {
 
 			needsCpuNamePatch = RestrictEventsPolicy::needsCpuNamePatch();
 			if (memFindPatch != nullptr || needsCpuNamePatch) {
-				dscPath = UserPatcher::getSharedCachePath();;
-
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute =
