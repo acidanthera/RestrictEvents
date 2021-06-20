@@ -58,7 +58,6 @@ struct RestrictEventsPolicy {
 		static const char *procBlacklist[] {
 			"/System/Library/CoreServices/ExpansionSlotNotification",
 			"/System/Library/CoreServices/MemorySlotNotification",
-			"/usr/libexec/firmwarecheckers/eficheck/eficheck",
 		};
 
 		char pathbuf[MAXPATHLEN];

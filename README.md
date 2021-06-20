@@ -7,7 +7,6 @@ RestrictEvents
 
 - `/System/Library/CoreServices/ExpansionSlotNotification`
 - `/System/Library/CoreServices/MemorySlotNotification`
-- `/usr/libexec/firmwarecheckers/eficheck/eficheck`
 
 The list of patches currently includes:
 
