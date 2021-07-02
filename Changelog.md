@@ -2,7 +2,7 @@ RestrictEvents Changelog
 ========================
 #### v1.0.3
 - Added constants for macOS 12 support
-- Disabled `eficheck` restrictions causing slowdowns
+- Rewrote `eficheck` restrictions to avoid slowdowns
 
 #### v1.0.2
 - Fixed patching CPU brand string with 8 core configurations
