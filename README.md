@@ -22,6 +22,8 @@ _Note_: Apple CPU identifier must be `<0F01>` for 8 core CPUs or higher and `<06
 - `-revbeta` (or `-lilubetaall`) to enable on macOS older than 10.8 or newer than 12
 - `-revproc` to enable verbose process logging (in DEBUG builds)
 - `-revnopatch` to disable patching for userspace processes
+- `-revnomemmgmtpatch` to disable patching of PCI/memory UI only
+- `-revnocpunamepatch` to disable patching of cpu renaming only
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
 
