@@ -339,7 +339,7 @@ PluginConfiguration ADDPR(config) {
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		restrictEventsPolicy.policy.registerPolicy();
 
-		if (!checkKernelArgument("-revnopatch") && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+		if (!(checkKernelArgument("-revnomemmgmtpatch") || checkKernelArgument("-revnopatch")) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			auto di = BaseDeviceInfo::get();
 			// Rename existing values to invalid ones to avoid matching.
 			if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
@@ -353,7 +353,9 @@ PluginConfiguration ADDPR(config) {
 				memFindSize  = sizeof("MacBookAir");
 				DBGLOG("rev", "detected MBA");
 			}
+    }
 
+    if (!(checkKernelArgument("-revnocpunamepatch") || checkKernelArgument("-revnopatch")) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			needsCpuNamePatch = RestrictEventsPolicy::needsCpuNamePatch();
 			if (memFindPatch != nullptr || needsCpuNamePatch) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
