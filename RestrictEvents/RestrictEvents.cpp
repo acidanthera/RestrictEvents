@@ -29,6 +29,9 @@ static const char *bootargBeta[] {
 	"-revbeta"
 };
 
+static bool disableMemoryManagementPatching;
+static bool disableCpuNamePatching;
+static bool disableAllPatching;
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
 
@@ -337,9 +340,12 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
+		disableMemoryManagementPatching = checkKernelArgument("-revnomemmgmtpatch");
+		disableCpuNamePatching = checkKernelArgument("-revnocpunamepatch");
+		disableAllPatching = checkKernelArgument("-revnopatch");
 		restrictEventsPolicy.policy.registerPolicy();
 
-		if (!(checkKernelArgument("-revnomemmgmtpatch") || checkKernelArgument("-revnopatch")) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+		if (!(disableMemoryManagementPatching || disableAllPatching) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			auto di = BaseDeviceInfo::get();
 			// Rename existing values to invalid ones to avoid matching.
 			if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
@@ -355,7 +361,7 @@ PluginConfiguration ADDPR(config) {
 			}
     }
 
-    if (!(checkKernelArgument("-revnocpunamepatch") || checkKernelArgument("-revnopatch")) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+    if (!(disableCpuNamePatching || disableAllPatching) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			needsCpuNamePatch = RestrictEventsPolicy::needsCpuNamePatch();
 			if (memFindPatch != nullptr || needsCpuNamePatch) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
