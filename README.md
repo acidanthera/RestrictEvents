@@ -14,9 +14,7 @@ The list of patches currently includes:
 - Disabled `MacPro7,1` PCI Expansion view and RAM view.
 - CPU brand string patch for non-Intel CPUs (can be forced for Intel with `revcpu=1`)
 
-_Note_: Apple CPU identifier must be `<0F01>` for 8 core CPUs or higher and `<0601>` for 1, 2, 4, or 6 cores. This is the default in OpenCore for non-natively supported CPUs.
-
-_Important Note_: The key `PlatformInfo > Generic > ProcessorType` is stored as a Number (Decimal), not Data (Hex). You cannot change this key to data, as OpenCore will reject the configuration on next boot. In order to do the above, you will need to convert your desired ProcessorType from Hex to Decimal first, and put that in the ProcessorType key.
+_Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0601` for 1, 2, 4, or 6 cores. This is the default in OpenCore for non-natively supported CPUs.
 
 #### Boot arguments
 - `-revoff` (or `-liluoff`) to disable
