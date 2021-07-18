@@ -236,13 +236,13 @@ struct RestrictEventsPolicy {
 		char *value = reinterpret_cast<char *>(&duip[0]);
 		value[sizeof(duip) - 1] = '\0';
 
-		if (strncmp(value, "all", 3) == 0) {
+		if (strcmp(value, "all") == 0) {
 			// Disable all UI patches
 			disableAllPatching = true;
-		} else if (strncmp(value, "mempci", 6) == 0) {
+		} else if (strcmp(value, "mempci") == 0) {
 			disableMemoryPciManagementPatching = true;
 			disableAllPatching = false;
-		} else if (strncmp(value, "cpuname", 7) == 0) {
+		} else if (strcmp(value, "cpuname") == 0) {
 			disableCpuNamePatching = true;
 			disableAllPatching = false;
 		} else {
