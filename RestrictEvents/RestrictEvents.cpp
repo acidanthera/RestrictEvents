@@ -371,7 +371,7 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
-    RestrictEventsPolicy::processDisableUIPatch();
+		RestrictEventsPolicy::processDisableUIPatch();
 		restrictEventsPolicy.policy.registerPolicy();
 
 		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
