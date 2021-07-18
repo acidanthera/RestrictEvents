@@ -241,13 +241,8 @@ struct RestrictEventsPolicy {
 			disableAllPatching = true;
 		} else if (strcmp(value, "mempci") == 0) {
 			disableMemoryPciManagementPatching = true;
-			disableAllPatching = false;
 		} else if (strcmp(value, "cpuname") == 0) {
 			disableCpuNamePatching = true;
-			disableAllPatching = false;
-		} else {
-			// Apply all UI patches. Treat as 'none'.
-			disableAllPatching = false;
 		}
 
 		DBGLOG("rev", "revnopatch to disable %s", duip);
