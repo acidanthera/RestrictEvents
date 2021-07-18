@@ -226,7 +226,7 @@ struct RestrictEventsPolicy {
 	 * Retrieve which system UI is to be disabled - all, mempci, cpuname, none (default)
 	 */
 	static void processDisableUIPatch() {
-    uint32_t duip[32] {};
+		char duip[128] {};
 		if (PE_parse_boot_argn("revnopatch", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revnopatch from boot-args");
 		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revnopatch"), u"revnopatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
