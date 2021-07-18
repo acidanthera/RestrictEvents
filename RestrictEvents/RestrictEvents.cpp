@@ -29,7 +29,7 @@ static const char *bootargBeta[] {
 	"-revbeta"
 };
 
-static bool disableMemoryManagementPatching;
+static bool disableMemoryPciManagementPatching;
 static bool disableCpuNamePatching;
 static bool disableAllPatching;
 static bool verboseProcessLogging;
@@ -223,6 +223,37 @@ struct RestrictEventsPolicy {
 	}
 
 	/**
+	 * Retrieve which system UI is to be disabled - all, mempci, cpuname, none (default)
+	 */
+	static void processDisableUIPatch() {
+    uint32_t duip[32] {};
+		if (PE_parse_boot_argn("revnopatch", duip, sizeof(duip))) {
+			DBGLOG("rev", "read revnopatch from boot-args");
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revnopatch"), u"revnopatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
+			DBGLOG("rev", "read revnopatch from NVRAM");
+		}
+        
+		char *value = reinterpret_cast<char *>(&duip[0]);
+		value[sizeof(duip) - 1] = '\0';
+
+		if (strncmp(value, "all", 3) == 0) {
+			// Disable all UI patches
+			disableAllPatching = true;
+		} else if (strncmp(value, "mempci", 6) == 0) {
+			disableMemoryPciManagementPatching = true;
+			disableAllPatching = false;
+		} else if (strncmp(value, "cpuname", 7) == 0) {
+			disableCpuNamePatching = true;
+			disableAllPatching = false;
+		} else {
+			// Apply all UI patches. Treat as 'none'.
+			disableAllPatching = false;
+		}
+
+		DBGLOG("rev", "revnopatch to disable %s", duip);
+	}
+
+	/**
 	 * Compute CPU brand string patch
 	 */
 	static void calculatePatchedBrandString() {
@@ -340,29 +371,27 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
-		disableMemoryManagementPatching = checkKernelArgument("-revnomemmgmtpatch");
-		disableCpuNamePatching = checkKernelArgument("-revnocpunamepatch");
-		disableAllPatching = checkKernelArgument("-revnopatch");
+    RestrictEventsPolicy::processDisableUIPatch();
 		restrictEventsPolicy.policy.registerPolicy();
 
-		if (!(disableMemoryManagementPatching || disableAllPatching) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
-			auto di = BaseDeviceInfo::get();
-			// Rename existing values to invalid ones to avoid matching.
-			if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
-				memFindPatch = "MacPro7,1";
-				memReplPatch = "HacPro7,1";
-				memFindSize  = sizeof("MacPro7,1");
-				DBGLOG("rev", "detected MP71");
-			} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
-				memFindPatch = "MacBookAir";
-				memReplPatch = "HacBookAir";
-				memFindSize  = sizeof("MacBookAir");
-				DBGLOG("rev", "detected MBA");
+		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+			if (!(disableMemoryPciManagementPatching || disableAllPatching)) {
+				// Rename existing values to invalid ones to avoid matching.
+				auto di = BaseDeviceInfo::get();
+				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
+					memFindPatch = "MacPro7,1";
+					memReplPatch = "HacPro7,1";
+					memFindSize  = sizeof("MacPro7,1");
+					DBGLOG("rev", "detected MP71");
+				} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
+					memFindPatch = "MacBookAir";
+					memReplPatch = "HacBookAir";
+					memFindSize  = sizeof("MacBookAir");
+					DBGLOG("rev", "detected MBA");
+				}
 			}
-    }
-
-    if (!(disableCpuNamePatching || disableAllPatching) && (lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
-			needsCpuNamePatch = RestrictEventsPolicy::needsCpuNamePatch();
+			
+			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
 			if (memFindPatch != nullptr || needsCpuNamePatch) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
