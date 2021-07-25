@@ -3,6 +3,7 @@ RestrictEvents Changelog
 #### v1.0.4
 - Fixed dual-core CPU spoofing on macOS 10.14 and earlier
 - Allow preserving MP7,1 UI through `revnopatch` in NVRAM or boot-args
+- Skip leading spaces for automatically received CPU names
 
 #### v1.0.3
 - Added constants for macOS 12 support

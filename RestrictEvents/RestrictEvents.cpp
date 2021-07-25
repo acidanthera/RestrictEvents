@@ -187,6 +187,7 @@ struct RestrictEventsPolicy {
 
 		char *brandStr = reinterpret_cast<char *>(&patch[0]);
 		brandStr[sizeof(patch) - 1] = '\0';
+        while (brandStr[0] == ' ') brandStr++;
 		if (brandStr[0] == '\0') return false;
 		auto len = strlen(brandStr);
 		memcpy(&cpuReplPatch[1], patch, len);
