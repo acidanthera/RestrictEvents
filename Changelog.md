@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.4
+- Fixed dual-core CPU spoofing on macOS 10.14 and earlier
+
 #### v1.0.3
 - Added constants for macOS 12 support
 - Rewrote `eficheck` restrictions to avoid slowdowns

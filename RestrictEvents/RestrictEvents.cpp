@@ -231,8 +231,8 @@ struct RestrictEventsPolicy {
 				cpuFindSize = sizeof("\0" "Intel Core i5");
 				break;
 			case 2:
-				cpuFindPatch = "\0" "Dual-Core Intel Core i5";
-				cpuFindSize = sizeof("\0" "Dual-Core Intel Core i5");
+				cpuFindPatch = getKernelVersion() >= KernelVersion::Catalina ? "\0" "Dual-Core Intel Core i5" : "\0" "Intel Core i5";
+				cpuFindSize = getKernelVersion() >= KernelVersion::Catalina ? sizeof("\0" "Dual-Core Intel Core i5") : sizeof("\0" "Intel Core i5");
 				break;
 			case 4:
 				cpuFindPatch = "\0" "Quad-Core Intel Core i5";
