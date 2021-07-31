@@ -265,12 +265,12 @@ struct RestrictEventsPolicy {
 				cpuFindSize = getKernelVersion() >= KernelVersion::Catalina ? sizeof("\0" "Dual-Core Intel Core i5") : sizeof("\0" "Intel Core i5");
 				break;
 			case 4:
-				cpuFindPatch = "\0" "Quad-Core Intel Core i5";
-				cpuFindSize = sizeof("\0" "Quad-Core Intel Core i5");
+				cpuFindPatch = getKernelVersion() >= KernelVersion::Catalina ? "\0" "Quad-Core Intel Core i5" : "\0" "Intel Core i5";
+				cpuFindSize = getKernelVersion() >= KernelVersion::Catalina ? sizeof("\0" "Quad-Core Intel Core i5") : sizeof("\0" "Intel Core i5");
 				break;
 			case 6:
-				cpuFindPatch = "\0" "6-Core Intel Core i5";
-				cpuFindSize = sizeof("\0" "6-Core Intel Core i5");
+				cpuFindPatch = getKernelVersion() >= KernelVersion::Catalina ? "\0" "6-Core Intel Core i5" : "\0" "Intel Core i5";
+				cpuFindSize = getKernelVersion() >= KernelVersion::Catalina ? sizeof("\0" "6-Core Intel Core i5") : sizeof("\0" "Intel Core i5");
 				break;
 			case 8:
 				cpuFindPatch = "\0" "8-Core Intel Xeon W";
