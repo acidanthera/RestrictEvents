@@ -190,7 +190,7 @@ struct RestrictEventsPolicy {
         while (brandStr[0] == ' ') brandStr++;
 		if (brandStr[0] == '\0') return false;
 		auto len = strlen(brandStr);
-		memcpy(&cpuReplPatch[1], patch, len);
+		memcpy(&cpuReplPatch[1], brandStr, len);
 		cpuReplSize = len + 2;
 
 		DBGLOG("rev", "requested to patch CPU name to %s", brandStr);
