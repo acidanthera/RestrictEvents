@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.5
+- Added macOS 12 software update support with any Mac model
+
 #### v1.0.4
 - Fixed dual-core CPU spoofing on macOS 10.14 and earlier
 - Allow preserving MP7,1 UI through `revnopatch` in NVRAM or boot-args

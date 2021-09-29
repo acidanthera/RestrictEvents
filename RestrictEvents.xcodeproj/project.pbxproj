@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CE39539C244ECDD900DEFAEA /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
+		CE7B69382704BDE600BC8A8A /* SoftwareUpdate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */; };
 		CE8DA0CC2517DE74008C44E8 /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE8DA0CB2517DE74008C44E8 /* libkmod.a */; };
 		CEAAA50C21FC976100683764 /* RestrictEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA50921FC976100683764 /* RestrictEvents.cpp */; };
 /* End PBXBuildFile section */
@@ -42,6 +43,7 @@
 		CE405ED21E49F9FC00AA0B3D /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE405ED81E4A080700AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDA1E4A080F00AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
+		CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SoftwareUpdate.cpp; sourceTree = "<group>"; };
 		CE8DA0CB2517DE74008C44E8 /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkmod.a; path = ../Lilu/MacKernelSDK/Library/x86_64/libkmod.a; sourceTree = "<group>"; };
 		CEAAA50821FC976100683764 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CEAAA50921FC976100683764 /* RestrictEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RestrictEvents.cpp; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				CEAAA50821FC976100683764 /* Info.plist */,
+				CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */,
 				CEAAA50921FC976100683764 /* RestrictEvents.cpp */,
 			);
 			path = RestrictEvents;
@@ -183,7 +186,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1250;
+				LastUpgradeCheck = 1300;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -243,6 +246,7 @@
 			files = (
 				CEAAA50C21FC976100683764 /* RestrictEvents.cpp in Sources */,
 				CE39539C244ECDD900DEFAEA /* plugin_start.cpp in Sources */,
+				CE7B69382704BDE600BC8A8A /* SoftwareUpdate.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -12,7 +12,8 @@ The list of patches currently includes:
 
 - Disabled `MacBookAir` model memory replacement UI (comes in pair with `SystemMemoryStatus` = `Upgradable` quirk).
 - Disabled `MacPro7,1` PCI Expansion view and RAM view.
-- CPU brand string patch for non-Intel CPUs (can be forced for Intel with `revcpu=1`)
+- CPU brand string patch for non-Intel CPUs (can be forced for Intel with `revcpu=1`).
+- Model analysis logic to choose macOS update source in SoftwareUpdateCoreSupport.
 
 _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0601` for 1, 2, 4, or 6 cores. This is the default in OpenCore for non-natively supported CPUs.
 

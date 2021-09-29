@@ -352,6 +352,8 @@ struct RestrictEventsPolicy {
 
 static RestrictEventsPolicy restrictEventsPolicy;
 
+void enableSoftwareUpdates(KernelPatcher &patcher);
+
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
 	parseModuleVersion(xStringify(MODULE_VERSION)),
@@ -388,16 +390,16 @@ PluginConfiguration ADDPR(config) {
 			}
 			
 			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
-			if (memFindPatch != nullptr || needsCpuNamePatch) {
+			if (memFindPatch != nullptr || needsCpuNamePatch || getKernelVersion() >= KernelVersion::Monterey) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute =
 						getKernelVersion() >= KernelVersion::BigSur ?
 						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidateFunc) :
 						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
-					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1)) {
+					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
-					}
+					if (getKernelVersion() >= KernelVersion::Monterey) enableSoftwareUpdates(patcher);
 				});
 			}
 		}
