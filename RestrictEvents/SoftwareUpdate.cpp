@@ -40,12 +40,9 @@
   'TrainName': 'StarBravoSeed'
  }
  
- Currently Pallas will not provide updates to any machine with gibraltar ProductType but non-ap (e.g. J137AP) HWModelStr.
- To workaround this issue we hook sysctls used by softwareupdated and com.apple.Mobile to report legacy iMac19,1 in ProductType
- and VMM-x86_64 in HWModelStr. The VMM model is chosen if the hypervisor sysctl returns true.
- 
- It is possible to report iMac19,1 board-id in HWModelStr, but it is a bit harder to patch as it would require hooking board-id
- access in IODT through e.g. `board-id` constant patch in SoftwareUpdateCoreSupport from dyld_shared_cache.
+ Currently Pallas will not provide updates to any machine with gibraltar ProductType but non-ap (e.g. J137AP) and non-VMM HWModelStr.
+ To workaround this issue we hook sysctls used by softwareupdated and com.apple.Mobile to report VMM-x86_64 in HWModelStr.
+ The VMM model is chosen if the hypervisor sysctl returns true.
 **/
 
 #define CTL_MAXNAME     12      /* largest number of components supported */
@@ -198,20 +195,6 @@ static sysctl_oid *sysctl_by_name(sysctl_oid_list *sysctl_children, const char *
     return nullptr;
 }
 
-static mach_vm_address_t org_sysctl_hw_generic;
-static int my_sysctl_hw_generic(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
-    if (arg2 == HW_PRODUCT) {
-        char procname[64];
-        proc_name(proc_pid(req->p), procname, sizeof(procname));
-        // SYSLOG("supd", "\n\n\n\nsoftwareupdated hw.generic %d - >>> %s <<<<\n\n\n\n", arg2, procname);
-        if (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0) {
-            return SYSCTL_OUT(req, "iMac19,1", strlen("iMac19,1") + 1);
-        }
-    }
-    
-    return FunctionCast(my_sysctl_hw_generic, org_sysctl_hw_generic)(oidp, arg1, arg2, req);
-}
-
 static mach_vm_address_t org_sysctl_vmm_present;
 static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
     char procname[64];
@@ -233,23 +216,9 @@ void enableSoftwareUpdates(KernelPatcher &patcher) {
     }
 	
 	// WARN: sysctl_children access should be locked. Unfortunately the lock is not exported.
-    
-    sysctl_oid *product = sysctl_by_name(sysctl_children, "hw.product");
-    if (!product) {
-        SYSLOG("supd", "failed to resolve hw.product sysctl");
-        return;
-    }
-    
     sysctl_oid *vmm_present = sysctl_by_name(sysctl_children, "kern.hv_vmm_present");
     if (!vmm_present) {
         SYSLOG("supd", "failed to resolve kern.hv_vmm_present sysctl");
-        return;
-    }
-
-    org_sysctl_hw_generic = patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(product->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_hw_generic), true);
-    if (!org_sysctl_hw_generic) {
-        SYSLOG("supd", "failed to route hw.product sysctl");
-        patcher.clearError();
         return;
     }
     
