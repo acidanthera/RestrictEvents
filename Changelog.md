@@ -1,7 +1,7 @@
 RestrictEvents Changelog
 ========================
 #### v1.0.5
-- Added macOS 12 software update support with any Mac model
+- Added macOS 12 software update support with any Mac model via `-revsbvmm`
 
 #### v1.0.4
 - Fixed dual-core CPU spoofing on macOS 10.14 and earlier

@@ -399,7 +399,8 @@ PluginConfiguration ADDPR(config) {
 						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
-					if (getKernelVersion() >= KernelVersion::Monterey) enableSoftwareUpdates(patcher);
+					if (getKernelVersion() >= KernelVersion::Monterey && checkKernelArgument("-revsbvmm"))
+						enableSoftwareUpdates(patcher);
 				});
 			}
 		}
