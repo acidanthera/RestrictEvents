@@ -29,15 +29,27 @@ static const char *bootargBeta[] {
 	"-revbeta"
 };
 
+static const char *binPathSystemInformation;
+static const char binPathSystemInformationLegacy[]   = "/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
+static const char binPathSystemInformationCatalina[] = "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
+static const char binPathSPMemoryReporter[]          = "/System/Library/SystemProfiler/SPMemoryReporter.spreporter/Contents/MacOS/SPMemoryReporter";
+
+static const char binPatchDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
+
 static bool disableMemoryPciManagementPatching;
 static bool disableCpuNamePatching;
+static bool disableDiskArbitrationPatching;
 static bool disableAllPatching;
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
 
-static const void *memFindPatch;
-static const void *memReplPatch;
-static size_t memFindSize;
+static const void *modelFindPatch;
+static const void *modelReplPatch;
+static size_t modelFindSize;
+
+static bool needsMemPatch;
+static const char memFindPatch[] = "MacBookAir\0MacBookPro10";
+static const char memReplPatch[] = "HacBookAir\0HacBookPro10";
 
 static constexpr size_t CpuSignatureWords = 12;
 static const char *cpuFindPatch;
@@ -50,6 +62,10 @@ static bool needsUnlockCoreCount;
 static uint8_t findUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static uint8_t replUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1C };
 static pmCallBacks_t pmCallbacks;
+
+static bool needsDiskArbitrationPatch;
+static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
+static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
 struct RestrictEventsPolicy {
 
@@ -91,9 +107,24 @@ struct RestrictEventsPolicy {
 		if (vn_getpath(vp, path, &pathlen) == 0) {
 			//DBGLOG("rev", "csValidatePage %s", path);
 
-			if (memFindPatch != nullptr && UNLIKELY(strcmp(path, "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information") == 0)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, memFindSize, memReplPatch, memFindSize))) {
-					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(memFindPatch));
+			//
+			// Mountain Lion only has the MacBookAir whitelist in System Information.
+			// Mavericks has the MacBookAir/MacBookPro10 whitelist in System Information and SPMemoryReporter.
+			// Yosemite and newer have the MacBookAir/MacBookPro10 whitelist in System Information, SPMemoryReporter, and AppleSystemInfo.framework.
+			//
+			if (modelFindPatch != nullptr && UNLIKELY(strcmp(path, binPathSystemInformation) == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
+					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(modelFindPatch));
+					return;
+				}
+			} else if (needsMemPatch && modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Mavericks && UNLIKELY(strcmp(path, binPathSPMemoryReporter) == 0)) {
+				 if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
+					 DBGLOG("rev", "patched %s in SPMemoryReporter.spreporter", reinterpret_cast<const char *>(modelFindPatch));
+					 return;
+				 }
+			} else if (needsMemPatch && getKernelVersion() >= KernelVersion::Mavericks && UserPatcher::matchSharedCachePath(path)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, sizeof(memFindPatch), memReplPatch, sizeof(memFindPatch)))) {
+					DBGLOG("rev", "patched model whitelist in AppleSystemInfo");
 					return;
 				}
 			} else if (cpuReplSize > 0 && UserPatcher::matchSharedCachePath(path)) {
@@ -104,20 +135,27 @@ struct RestrictEventsPolicy {
 					DBGLOG("rev", "patched core count in AppleSystemInfo");
 					return;
 				}
+			} else if (needsDiskArbitrationPatch && UNLIKELY(strcmp(path, binPatchDiskArbitrationAgent) == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
+																									 findDiskArbitrationPatch, sizeof(findDiskArbitrationPatch),
+																									 replDiskArbitrationPatch, sizeof(findDiskArbitrationPatch)))) {
+					DBGLOG("rev", "patched unreadable disk case in DiskArbitrationAgent");
+					return;
+				}
 			}
 		}
 	}
 
 	/**
-	 *  Handler to patch userspace for Big Sur
+	 *  Handler to patch userspace for Big Sur and newer.
 	 */
-	static void csValidatePage(vnode_t vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
-		FunctionCast(csValidatePage, orgCsValidateFunc)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
+	static void csValidatePageBigSur(vnode_t vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
+		FunctionCast(csValidatePageBigSur, orgCsValidateFunc)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
 		performReplacements(vp, data, PAGE_SIZE);
 	}
 
 	/**
-	 *  Handler to patch userspace prior to Big Sur
+	 *  Handler to patch userspace for Sierra to Catalina.
 	 */
 	static void csValidateRange(vnode_t vp, memory_object_t pager, memory_object_offset_t offset, const void *data, vm_size_t size, unsigned *result) {
 		FunctionCast(csValidateRange, orgCsValidateFunc)(vp, pager, offset, data, size, result);
@@ -125,7 +163,7 @@ struct RestrictEventsPolicy {
 	}
 
 	static bool readNvramVariable(const char *fullName, const char16_t *unicodeName, const EFI_GUID *guid, void *dst, size_t max) {
-		// Firstry try the os-provided NVStorage. If it is loaded, it is not safe to call EFI services.
+		// First try the os-provided NVStorage. If it is loaded, it is not safe to call EFI services.
 		NVStorage storage;
 		if (storage.init()) {
 			uint32_t size = 0;
@@ -244,6 +282,8 @@ struct RestrictEventsPolicy {
 			disableMemoryPciManagementPatching = true;
 		} else if (strcmp(value, "cpuname") == 0) {
 			disableCpuNamePatching = true;
+		} else if (strcmp(value, "diskread") == 0) {
+			disableDiskArbitrationPatching = true;
 		}
 
 		DBGLOG("rev", "revnopatch to disable %s", duip);
@@ -377,25 +417,37 @@ PluginConfiguration ADDPR(config) {
 				// Rename existing values to invalid ones to avoid matching.
 				auto di = BaseDeviceInfo::get();
 				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
-					memFindPatch = "MacPro7,1";
-					memReplPatch = "HacPro7,1";
-					memFindSize  = sizeof("MacPro7,1");
+					modelFindPatch = "MacPro7,1";
+					modelReplPatch = "HacPro7,1";
+					modelFindSize  = sizeof("MacPro7,1");
 					DBGLOG("rev", "detected MP71");
 				} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
-					memFindPatch = "MacBookAir";
-					memReplPatch = "HacBookAir";
-					memFindSize  = sizeof("MacBookAir");
+					needsMemPatch = true;
+					modelFindPatch = "MacBookAir";
+					modelReplPatch = "HacBookAir";
+					modelFindSize  = sizeof("MacBookAir");
 					DBGLOG("rev", "detected MBA");
+				} else if (strncmp(di.modelIdentifier, "MacBookPro10", strlen("MacBookPro10")) == 0) {
+					needsMemPatch = true;
+					modelFindPatch = "MacBookPro10";
+					modelReplPatch = "HacBookPro10";
+					modelFindSize  = sizeof("MacBookPro10");
+					DBGLOG("rev", "detected MBP10");
+				}
+				
+				if (modelFindPatch != nullptr) {
+					binPathSystemInformation = getKernelVersion() >= KernelVersion::Catalina ? binPathSystemInformationCatalina : binPathSystemInformationLegacy;
 				}
 			}
 			
 			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
-			if (memFindPatch != nullptr || needsCpuNamePatch || getKernelVersion() >= KernelVersion::Monterey) {
+			needsDiskArbitrationPatch = !(disableDiskArbitrationPatching || disableAllPatching) == true;
+			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch || getKernelVersion() >= KernelVersion::Monterey) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute =
 						getKernelVersion() >= KernelVersion::BigSur ?
-						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePage, orgCsValidateFunc) :
+						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageBigSur, orgCsValidateFunc) :
 						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");

@@ -1,5 +1,9 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.6
+- Fixed memory view restrictions for `MacBookAir` and `MacBookPro10` not being correctly disabled
+- Disabled `The disk you inserted was not readable by this computer` message popup
+
 #### v1.0.5
 - Added macOS 12 software update support with any Mac model via `-revsbvmm`
 

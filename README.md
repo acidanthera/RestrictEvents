@@ -22,7 +22,7 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 - `-revbeta` (or `-lilubetaall`) to enable on macOS older than 10.8 or newer than 12
 - `-revproc` to enable verbose process logging (in DEBUG builds)
 - `-revsbvmm` to force VMM SB model, allowing `x86legacy` SB model on T2 Mac model for macOS 12
-- `revnopatch=value` to disable patching for userspace processes of Memory/PCI UI and/or CPU renaming or no patching will happen. Accepted values are `all`, `mempci`, `cpuname`, `none` Defaults to `none`.
+- `revnopatch=value` to disable patching for userspace processes of Memory/PCI UI, CPU renaming, and/or unreadable disk popups or no patching will happen. Accepted values are `all`, `mempci`, `cpuname`, `diskread`, `none` Defaults to `none`.
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
 
