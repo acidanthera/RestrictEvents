@@ -442,7 +442,9 @@ PluginConfiguration ADDPR(config) {
 			
 			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
 			needsDiskArbitrationPatch = !(disableDiskArbitrationPatching || disableAllPatching) == true;
-			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch || (getKernelVersion() >= KernelVersion::Monterey || (getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
+			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch ||
+				(getKernelVersion() >= KernelVersion::Monterey ||
+				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute =
@@ -451,7 +453,9 @@ PluginConfiguration ADDPR(config) {
 						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
-					if ((getKernelVersion() >= KernelVersion::Monterey || (getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4)) && (checkKernelArgument("-revsbvmm") || checkKernelArgument("-revasset")))
+					if ((getKernelVersion() >= KernelVersion::Monterey ||
+						(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4)) &&
+						(checkKernelArgument("-revsbvmm") || checkKernelArgument("-revasset")))
 						rerouteHvVmm(patcher);
 				});
 			}

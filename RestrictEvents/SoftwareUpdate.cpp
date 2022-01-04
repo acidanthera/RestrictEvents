@@ -195,16 +195,18 @@ static sysctl_oid *sysctl_by_name(sysctl_oid_list *sysctl_children, const char *
     return nullptr;
 }
 
+static const char revasset_arg = checkKernelArgument("-revasset");
+static const char revsbvmm_arg = checkKernelArgument("-revsbvmm");
 static mach_vm_address_t org_sysctl_vmm_present;
 static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
     char procname[64];
     proc_name(proc_pid(req->p), procname, sizeof(procname));
     // SYSLOG("supd", "\n\n\n\nsoftwareupdated vmm_present %d - >>> %s <<<<\n\n\n\n", arg2, procname);
-    if (checkKernelArgument("-revsbvmm") && (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0)) {
+    if (revsbvmm_arg && (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0)) {
 		int hv_vmm_present_on = 1;
 		return SYSCTL_OUT(req, &hv_vmm_present_on, sizeof(hv_vmm_present_on));
     }
-	else if (checkKernelArgument("-revasset") && (strcmp(procname, "AssetCache") == 0 || strcmp(procname, "AssetCacheManage") == 0)) {
+	else if (revasset_arg && (strncmp(procname, "AssetCache",  strlen("AssetCache")) == 0)) {
 		int hv_vmm_present_off = 0;
 		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
 	}
