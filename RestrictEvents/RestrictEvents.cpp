@@ -13,6 +13,8 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_policy.hpp>
 
+#include "SoftwareUpdate.hpp"
+
 extern "C" {
 #include <i386/pmCPU.h>
 }
@@ -392,7 +394,7 @@ struct RestrictEventsPolicy {
 
 static RestrictEventsPolicy restrictEventsPolicy;
 
-void enableSoftwareUpdates(KernelPatcher &patcher);
+void rerouteHvVmm(KernelPatcher &patcher);
 
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
@@ -409,6 +411,8 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
+		revassetIsSet = checkKernelArgument("-revasset");
+		revsbvmmIsSet = checkKernelArgument("-revsbvmm");
 		RestrictEventsPolicy::processDisableUIPatch();
 		restrictEventsPolicy.policy.registerPolicy();
 
@@ -442,7 +446,9 @@ PluginConfiguration ADDPR(config) {
 			
 			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
 			needsDiskArbitrationPatch = !(disableDiskArbitrationPatching || disableAllPatching) == true;
-			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch || getKernelVersion() >= KernelVersion::Monterey) {
+			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch ||
+				(getKernelVersion() >= KernelVersion::Monterey ||
+				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
 					KernelPatcher::RouteRequest csRoute =
@@ -451,8 +457,10 @@ PluginConfiguration ADDPR(config) {
 						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
-					if (getKernelVersion() >= KernelVersion::Monterey && checkKernelArgument("-revsbvmm"))
-						enableSoftwareUpdates(patcher);
+					if ((getKernelVersion() >= KernelVersion::Monterey ||
+						(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4)) &&
+						(revsbvmmIsSet || revassetIsSet))
+						rerouteHvVmm(patcher);
 				});
 			}
 		}

@@ -43,6 +43,7 @@
 		CE405ED21E49F9FC00AA0B3D /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE405ED81E4A080700AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDA1E4A080F00AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
+		CE6717F0278CC4DD00EB1CA1 /* SoftwareUpdate.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SoftwareUpdate.hpp; sourceTree = "<group>"; };
 		CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SoftwareUpdate.cpp; sourceTree = "<group>"; };
 		CE8DA0CB2517DE74008C44E8 /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkmod.a; path = ../Lilu/MacKernelSDK/Library/x86_64/libkmod.a; sourceTree = "<group>"; };
 		CEAAA50821FC976100683764 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -142,6 +143,7 @@
 			children = (
 				CEAAA50821FC976100683764 /* Info.plist */,
 				CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */,
+				CE6717F0278CC4DD00EB1CA1 /* SoftwareUpdate.hpp */,
 				CEAAA50921FC976100683764 /* RestrictEvents.cpp */,
 			);
 			path = RestrictEvents;

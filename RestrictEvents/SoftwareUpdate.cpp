@@ -9,6 +9,8 @@
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_user.hpp>
 
+#include "SoftwareUpdate.hpp"
+
 /**
  
  Non-Apple hardware or unsupported Apple hardware often has to be spoofed to gibraltar models to support new hardware and macOS versions.
@@ -200,15 +202,18 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
     char procname[64];
     proc_name(proc_pid(req->p), procname, sizeof(procname));
     // SYSLOG("supd", "\n\n\n\nsoftwareupdated vmm_present %d - >>> %s <<<<\n\n\n\n", arg2, procname);
-    if (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0) {
-        int hv_vmm_present = 1;
-        return SYSCTL_OUT(req, &hv_vmm_present, sizeof(hv_vmm_present));
-    }
+    if (revsbvmmIsSet && (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0)) {
+		int hv_vmm_present_on = 1;
+		return SYSCTL_OUT(req, &hv_vmm_present_on, sizeof(hv_vmm_present_on));
+    } else if (revassetIsSet && (strncmp(procname, "AssetCache",  sizeof("AssetCache")-1) == 0)) {
+		int hv_vmm_present_off = 0;
+		return SYSCTL_OUT(req, &hv_vmm_present_off, sizeof(hv_vmm_present_off));
+	}
     
     return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
 }
 
-void enableSoftwareUpdates(KernelPatcher &patcher) {
+void rerouteHvVmm(KernelPatcher &patcher) {
     auto sysctl_children = reinterpret_cast<sysctl_oid_list *>(patcher.solveSymbol(KernelPatcher::KernelID, "_sysctl__children"));
     if (!sysctl_children) {
         SYSLOG("supd", "failed to resolve _sysctl__children");
