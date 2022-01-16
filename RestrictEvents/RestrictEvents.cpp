@@ -15,6 +15,34 @@
 
 #include "SoftwareUpdate.hpp"
 
+//
+// Private definitions from memory_object_types.h and vnode_pager.h
+//
+typedef struct memory_object {
+	unsigned int	_pad1; /* struct ipc_object_header */
+#ifdef __LP64__
+	unsigned int	_pad2; /* pad to natural boundary */
+#endif
+	const void		*mo_pager_ops;
+} *memory_object_kernel_t;
+
+typedef natural_t ipc_object_bits_t;
+
+struct ipc_object_header {
+	ipc_object_bits_t io_bits;
+#ifdef __LP64__
+	natural_t         io_padding; /* pad to natural boundary */
+#endif
+};
+
+typedef struct vnode_pager {
+	struct ipc_object_header	pager_header;	/* fake ip_kotype()		*/
+	void *pager_ops;	/* == &vnode_pager_ops	     */
+	unsigned int		ref_count;	/* reference count	     */
+	memory_object_control_t control_handle;	/* mem object control handle */
+	struct vnode		*vnode_handle;	/* vnode handle 	     */
+} *vnode_pager_t;
+
 extern "C" {
 #include <i386/pmCPU.h>
 }
@@ -30,6 +58,8 @@ static const char *bootargDebug[] {
 static const char *bootargBeta[] {
 	"-revbeta"
 };
+
+static void *vnodePagerOpsKernel;
 
 static const char *binPathSystemInformation;
 static const char binPathSystemInformationLegacy[]   = "/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
@@ -159,9 +189,19 @@ struct RestrictEventsPolicy {
 	/**
 	 *  Handler to patch userspace for Sierra to Catalina.
 	 */
-	static void csValidateRange(vnode_t vp, memory_object_t pager, memory_object_offset_t offset, const void *data, vm_size_t size, unsigned *result) {
-		FunctionCast(csValidateRange, orgCsValidateFunc)(vp, pager, offset, data, size, result);
+	static void csValidateRangeSierra(vnode_t vp, memory_object_t pager, memory_object_offset_t offset, const void *data, vm_size_t size, unsigned *result) {
+		FunctionCast(csValidateRangeSierra, orgCsValidateFunc)(vp, pager, offset, data, size, result);
 		performReplacements(vp, data, size);
+	}
+
+	/**
+	 *  Handler to patch userspace for Mountain Lion to El Capitan.
+	 */
+	static bool csValidatePageMountainLion(void *blobs, memory_object_kernel_t pager, memory_object_offset_t page_offset, const void *data, int *tainted) {
+		bool result = FunctionCast(csValidatePageMountainLion, orgCsValidateFunc)(blobs, pager, page_offset, data, tainted);
+		if (pager != nullptr && pager->mo_pager_ops == vnodePagerOpsKernel)
+			performReplacements(((vnode_pager_t) pager)->vnode_handle, data, PAGE_SIZE);
+		return result;
 	}
 
 	static bool readNvramVariable(const char *fullName, const char16_t *unicodeName, const EFI_GUID *guid, void *dst, size_t max) {
@@ -454,7 +494,15 @@ PluginConfiguration ADDPR(config) {
 					KernelPatcher::RouteRequest csRoute =
 						getKernelVersion() >= KernelVersion::BigSur ?
 						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageBigSur, orgCsValidateFunc) :
-						KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRange, orgCsValidateFunc);
+							(getKernelVersion() >= KernelVersion::Sierra ?
+							KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRangeSierra, orgCsValidateFunc) :
+							KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageMountainLion, orgCsValidateFunc));
+					if (getKernelVersion() < KernelVersion::Sierra) {
+						vnodePagerOpsKernel = reinterpret_cast<void *>(patcher.solveSymbol(KernelPatcher::KernelID, "_vnode_pager_ops"));
+						if (!vnodePagerOpsKernel)
+							SYSLOG("rev", "failed to solve _vnode_pager_ops");
+					}
+					
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
 					if ((getKernelVersion() >= KernelVersion::Monterey ||
