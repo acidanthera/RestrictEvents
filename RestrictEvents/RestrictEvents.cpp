@@ -154,25 +154,29 @@ struct RestrictEventsPolicy {
 					 DBGLOG("rev", "patched %s in SPMemoryReporter.spreporter", reinterpret_cast<const char *>(modelFindPatch));
 					 return;
 				 }
-			} else if (needsMemPatch && getKernelVersion() >= KernelVersion::Mavericks && UserPatcher::matchSharedCachePath(path)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, sizeof(memFindPatch), memReplPatch, sizeof(memFindPatch)))) {
-					DBGLOG("rev", "patched model whitelist in AppleSystemInfo");
-					return;
-				}
-			} else if (cpuReplSize > 0 && UserPatcher::matchSharedCachePath(path)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
-					DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch + 1));
-					return;
-				} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
-					DBGLOG("rev", "patched core count in AppleSystemInfo");
-					return;
-				}
 			} else if (needsDiskArbitrationPatch && UNLIKELY(strcmp(path, binPatchDiskArbitrationAgent) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
 																									 findDiskArbitrationPatch, sizeof(findDiskArbitrationPatch),
 																									 replDiskArbitrationPatch, sizeof(findDiskArbitrationPatch)))) {
 					DBGLOG("rev", "patched unreadable disk case in DiskArbitrationAgent");
 					return;
+				}
+			} else if (UserPatcher::matchSharedCachePath(path)) {
+				// Model check and CPU name may exist in the same page in AppleSystemInfo.
+				if (needsMemPatch && getKernelVersion() >= KernelVersion::Yosemite) {
+					if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, sizeof(memFindPatch), memReplPatch, sizeof(memFindPatch)))) {
+						DBGLOG("rev", "patched model whitelist in AppleSystemInfo");
+					}
+				}
+
+				if (cpuReplSize > 0) {
+					if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, cpuFindPatch, cpuFindSize, cpuReplPatch, cpuReplSize))) {
+						DBGLOG("rev", "patched %s in AppleSystemInfo", reinterpret_cast<const char *>(cpuFindPatch + 1));
+						return;
+					} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
+						DBGLOG("rev", "patched core count in AppleSystemInfo");
+						return;
+					}
 				}
 			}
 		}
