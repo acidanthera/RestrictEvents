@@ -16,6 +16,7 @@
 #include "SoftwareUpdate.hpp"
 
 extern "C" {
+#include <i386/cpuid.h>
 #include <i386/pmCPU.h>
 }
 
@@ -245,8 +246,14 @@ struct RestrictEventsPolicy {
 		CPUInfo::getCpuid(0, 0, nullptr, &b, &c, &d);
 		bool isAMD = (b == CPUInfo::signature_AMD_ebx && c == CPUInfo::signature_AMD_ecx && d == CPUInfo::signature_AMD_edx);
 
-		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
 		uint32_t cc = 0, pp = 0;
+		if (!isAMD) {
+			cc = cpuid_info()->core_count;
+			DBGLOG("rev", "calculated %u cores from cpuid_info()", cc);
+			return cc;
+		}
+
+		pmKextRegister(PM_DISPATCH_VERSION, NULL, &pmCallbacks);
 		auto pkg = pmCallbacks.GetPkgRoot();
 		while (pkg != nullptr) {
 			auto core = pkg->cores;
@@ -257,7 +264,6 @@ struct RestrictEventsPolicy {
 			DBGLOG("rev", "calculated %u cores in pkg %u amd %d", cc, pp, isAMD);
 			pp++;
 			pkg = pkg->next;
-			if (!isAMD) break;
 		}
 
 		return cc;
