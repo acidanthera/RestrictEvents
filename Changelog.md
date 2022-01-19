@@ -1,7 +1,7 @@
 RestrictEvents Changelog
 ========================
 #### v1.0.7
-- Fixed detecting CPU core count on Intel CPU
+- Fixed detecting CPU core count on Intel CPU with altered topology
 
 #### v1.0.6
 - Fixed memory view restrictions for `MacBookAir` and `MacBookPro10` not being correctly disabled
