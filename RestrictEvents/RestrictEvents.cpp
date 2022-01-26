@@ -66,12 +66,15 @@ static const char binPathSystemInformationLegacy[]   = "/Applications/Utilities/
 static const char binPathSystemInformationCatalina[] = "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
 static const char binPathSPMemoryReporter[]          = "/System/Library/SystemProfiler/SPMemoryReporter.spreporter/Contents/MacOS/SPMemoryReporter";
 
-static const char binPatchDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
+static const char binPathDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
 
-static bool disableMemoryPciManagementPatching;
-static bool disableCpuNamePatching;
-static bool disableDiskArbitrationPatching;
-static bool disableAllPatching;
+static bool enableMemoryUiPatching;
+static bool enablePciUiPatching;
+static bool enableCpuNamePatching;
+static bool enableDiskArbitrationPatching;
+static bool enableAssetPatching;
+static bool enableSbvmmPatching;
+
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
 
@@ -95,7 +98,6 @@ static uint8_t findUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0
 static uint8_t replUnlockCoreCount[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1C };
 static pmCallBacks_t pmCallbacks;
 
-static bool needsDiskArbitrationPatch;
 static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
@@ -154,7 +156,7 @@ struct RestrictEventsPolicy {
 					 DBGLOG("rev", "patched %s in SPMemoryReporter.spreporter", reinterpret_cast<const char *>(modelFindPatch));
 					 return;
 				 }
-			} else if (needsDiskArbitrationPatch && UNLIKELY(strcmp(path, binPatchDiskArbitrationAgent) == 0)) {
+			} else if (enableDiskArbitrationPatching && UNLIKELY(strcmp(path, binPathDiskArbitrationAgent) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
 																									 findDiskArbitrationPatch, sizeof(findDiskArbitrationPatch),
 																									 replDiskArbitrationPatch, sizeof(findDiskArbitrationPatch)))) {
@@ -308,31 +310,44 @@ struct RestrictEventsPolicy {
 	}
 
 	/**
-	 * Retrieve which system UI is to be disabled - all, mempci, cpuname, none (default)
+	 * Retrieve which system UI is to be enabled
 	 */
-	static void processDisableUIPatch() {
+	static void processEnableUIPatch() {
 		char duip[128] {};
-		if (PE_parse_boot_argn("revnopatch", duip, sizeof(duip))) {
-			DBGLOG("rev", "read revnopatch from boot-args");
-		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revnopatch"), u"revnopatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
-			DBGLOG("rev", "read revnopatch from NVRAM");
+		if (PE_parse_boot_argn("revpatch", duip, sizeof(duip))) {
+			DBGLOG("rev", "read revpatch from boot-args");
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revpatch"), u"revpatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
+			DBGLOG("rev", "read revpatch from NVRAM");
 		}
-        
+
 		char *value = reinterpret_cast<char *>(&duip[0]);
 		value[sizeof(duip) - 1] = '\0';
 
-		if (strcmp(value, "all") == 0) {
-			// Disable all UI patches
-			disableAllPatching = true;
-		} else if (strcmp(value, "mempci") == 0) {
-			disableMemoryPciManagementPatching = true;
-		} else if (strcmp(value, "cpuname") == 0) {
-			disableCpuNamePatching = true;
-		} else if (strcmp(value, "diskread") == 0) {
-			disableDiskArbitrationPatching = true;
+		if (strstr(value, "memtab", strlen("memtab"))) {
+			enableMemoryUiPatching = true;
+		}
+		if (strstr(value, "pci", strlen("pci"))) {
+			enablePciUiPatching = true;
+		}
+		if (strstr(value, "cpuname", strlen("cpuname"))) {
+			enableCpuNamePatching = true;
+		}
+		if (strstr(value, "diskread", strlen("diskread"))) {
+			enableDiskArbitrationPatching = true;
+		}
+		if (strstr(value, "asset", strlen("asset"))) {
+			enableAssetPatching = true;
+		}
+		if (strstr(value, "sbvmm", strlen("sbvmm"))) {
+			enableSbvmmPatching = true;
+		}
+		if (strstr(value, "auto", strlen("auto"))) {
+			enableMemoryUiPatching = true;
+			enablePciUiPatching = true;
+			enableCpuNamePatching = true;
 		}
 
-		DBGLOG("rev", "revnopatch to disable %s", duip);
+		DBGLOG("rev", "revpatch to enable %s", duip);
 	}
 
 	/**
@@ -455,13 +470,13 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
-		revassetIsSet = checkKernelArgument("-revasset");
-		revsbvmmIsSet = checkKernelArgument("-revsbvmm");
-		RestrictEventsPolicy::processDisableUIPatch();
+		RestrictEventsPolicy::processEnableUIPatch();
 		restrictEventsPolicy.policy.registerPolicy();
+		revassetIsSet = enableAssetPatching;
+		revsbvmmIsSet = enableSbvmmPatching;
 
 		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
-			if (!(disableMemoryPciManagementPatching || disableAllPatching)) {
+			if (enableMemoryUiPatching | enablePciUiPatching) {
 				// Rename existing values to invalid ones to avoid matching.
 				auto di = BaseDeviceInfo::get();
 				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
@@ -488,9 +503,8 @@ PluginConfiguration ADDPR(config) {
 				}
 			}
 			
-			needsCpuNamePatch = !(disableCpuNamePatching || disableAllPatching) == true ? RestrictEventsPolicy::needsCpuNamePatch() : false;
-			needsDiskArbitrationPatch = !(disableDiskArbitrationPatching || disableAllPatching) == true;
-			if (modelFindPatch != nullptr || needsCpuNamePatch || needsDiskArbitrationPatch ||
+			needsCpuNamePatch = enableCpuNamePatching ? RestrictEventsPolicy::needsCpuNamePatch() : false;
+			if (modelFindPatch != nullptr || needsCpuNamePatch || enableDiskArbitrationPatching ||
 				(getKernelVersion() >= KernelVersion::Monterey ||
 				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
