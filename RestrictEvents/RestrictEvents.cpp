@@ -228,7 +228,7 @@ struct RestrictEventsPolicy {
 
 		char *brandStr = reinterpret_cast<char *>(&patch[0]);
 		brandStr[sizeof(patch) - 1] = '\0';
-        while (brandStr[0] == ' ') brandStr++;
+		while (brandStr[0] == ' ') brandStr++;
 		if (brandStr[0] == '\0') return false;
 		auto len = strlen(brandStr);
 		memcpy(&cpuReplPatch[1], brandStr, len);
@@ -279,7 +279,7 @@ struct RestrictEventsPolicy {
 		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revnopatch"), u"revnopatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
 			DBGLOG("rev", "read revnopatch from NVRAM");
 		}
-        
+		
 		char *value = reinterpret_cast<char *>(&duip[0]);
 		value[sizeof(duip) - 1] = '\0';
 
