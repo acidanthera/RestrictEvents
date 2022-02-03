@@ -206,7 +206,7 @@ struct RestrictEventsPolicy {
 	static bool csValidatePageMountainLion(void *blobs, memory_object_kernel_t pager, memory_object_offset_t page_offset, const void *data, int *tainted) {
 		bool result = FunctionCast(csValidatePageMountainLion, orgCsValidateFunc)(blobs, pager, page_offset, data, tainted);
 		if (pager != nullptr && pager->mo_pager_ops == vnodePagerOpsKernel)
-			performReplacements(((vnode_pager_t) pager)->vnode_handle, data, PAGE_SIZE);
+			performReplacements(reinterpret_cast<vnode_pager_t>(pager)->vnode_handle, data, PAGE_SIZE);
 		return result;
 	}
 
