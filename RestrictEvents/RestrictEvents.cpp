@@ -313,7 +313,7 @@ struct RestrictEventsPolicy {
 	 * Retrieve which system UI is to be enabled
 	 */
 	static void processEnableUIPatch() {
-		char duip[128] {};
+		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revpatch", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revpatch from boot-args");
 		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revpatch"), u"revpatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
