@@ -30,6 +30,7 @@
 		1CF01C901C8CF97F002DCEA3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		415F010527AB6C21001F0143 /* vnode_types.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = vnode_types.hpp; sourceTree = "<group>"; };
 		CE405EBA1E49DD7100AA0B3D /* kern_compression.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE405EBB1E49DD7100AA0B3D /* kern_disasm.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE405EBC1E49DD7100AA0B3D /* kern_file.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -145,6 +146,7 @@
 				CE7B69372704BDE600BC8A8A /* SoftwareUpdate.cpp */,
 				CE6717F0278CC4DD00EB1CA1 /* SoftwareUpdate.hpp */,
 				CEAAA50921FC976100683764 /* RestrictEvents.cpp */,
+				415F010527AB6C21001F0143 /* vnode_types.hpp */,
 			);
 			path = RestrictEvents;
 			sourceTree = "<group>";
