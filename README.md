@@ -13,6 +13,7 @@ The list of patches currently includes:
 - Disabled `MacBookAir` model memory replacement UI (comes in pair with `SystemMemoryStatus` = `Upgradable` quirk).
 - Disabled `MacPro7,1` PCI Expansion view and RAM view.
 - CPU brand string patch for non-Intel CPUs (can be forced for Intel with `revcpu=1`).
+- Disabled uninitialized disk UI
 
 _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0601` for 1, 2, 4, or 6 cores. This is the default in OpenCore for non-natively supported CPUs.
 
@@ -21,13 +22,19 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 - `-revdbg` (or `-liludbgall`) to enable verbose logging (in DEBUG builds)
 - `-revbeta` (or `-lilubetaall`) to enable on macOS older than 10.8 or newer than 12
 - `-revproc` to enable verbose process logging (in DEBUG builds)
-- `-revsbvmm` to force VMM SB model, allowing OTA updates for unsupported models on macOS 11.3 or newer
-- `-revasset` to allow Content Caching when `sysctl kern.hv_vmm_present` returns `1` on macOS 11.3 or newer
-- `revnopatch=value` to disable patching for userspace processes of Memory/PCI UI, CPU renaming, and/or unreadable disk popups or no patching will happen. Accepted values are `all`, `mempci`, `cpuname`, `diskread`, `none` Defaults to `none`.
+- `revpatch=value` to enable patching as comma separated options. Default value is `auto`.
+  - `memtab` - enable memory tab in System Information on MacBookAir and MacBookPro10,x platforms
+  - `pci` - prevent PCI configuration warnings on MacPro7,1 platforms
+  - `cpuname` - custom CPU name in System Information
+  - `diskread` - disables uninitialized disk warning in Finder
+  - `asset` - allows Content Caching when `sysctl kern.hv_vmm_present` returns `1` on macOS 11.3 or newer
+  - `sbvmm` - forces VMM SB model, allowing OTA updates for unsupported models on macOS 11.3 or newer
+  - `none` - disable all patching
+  - `auto` - same as `memtab,pci,cpuname`
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
 
-_Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revnopatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` NVRAM variables work the same as the boot arguments, but have lower priority.
+_Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revpatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` NVRAM variables work the same as the boot arguments, but have lower priority.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS  
