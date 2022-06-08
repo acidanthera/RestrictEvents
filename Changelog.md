@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.8
+- Added constants for macOS 13 support
+
 #### v1.0.7
 - Fixed detecting CPU core count on Intel CPU with altered topology
 - Fixed support on macOS 10.9 - 10.11
