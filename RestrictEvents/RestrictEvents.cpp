@@ -302,13 +302,11 @@ struct RestrictEventsPolicy {
 		char *value = reinterpret_cast<char *>(&duip[0]);
 		value[sizeof(duip) - 1] = '\0';
 
-		// Do not enable Memory and PCI UI patching on real Macs
-		// Reference: https://github.com/acidanthera/bugtracker/issues/2046
 		if (strstr(value, "memtab", strlen("memtab"))) {
-			enableMemoryUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
+			enableMemoryUiPatching = true;
 		}
 		if (strstr(value, "pci", strlen("pci"))) {
-			enablePciUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
+			enablePciUiPatching = true;
 		}
 		if (strstr(value, "cpuname", strlen("cpuname"))) {
 			enableCpuNamePatching = true;
@@ -323,6 +321,8 @@ struct RestrictEventsPolicy {
 			enableSbvmmPatching = true;
 		}
 		if (strstr(value, "auto", strlen("auto"))) {
+			// Do not enable Memory and PCI UI patching on real Macs
+			// Reference: https://github.com/acidanthera/bugtracker/issues/2046
 			enableMemoryUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 			enablePciUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 			enableCpuNamePatching = true;
