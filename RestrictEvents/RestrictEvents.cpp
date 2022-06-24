@@ -291,7 +291,7 @@ struct RestrictEventsPolicy {
 	/**
 	 * Retrieve which system UI is to be enabled
 	 */
-	static void processEnableUIPatch() {
+	static void processEnableUIPatch(BaseDeviceInfo *info) {
 		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revpatch", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revpatch from boot-args");
@@ -321,8 +321,10 @@ struct RestrictEventsPolicy {
 			enableSbvmmPatching = true;
 		}
 		if (strstr(value, "auto", strlen("auto"))) {
-			enableMemoryUiPatching = true;
-			enablePciUiPatching = true;
+			// Do not enable Memory and PCI UI patching on real Macs
+			// Reference: https://github.com/acidanthera/bugtracker/issues/2046
+			enableMemoryUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
+			enablePciUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 			enableCpuNamePatching = true;
 		}
 
@@ -449,7 +451,8 @@ PluginConfiguration ADDPR(config) {
 	[]() {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
-		RestrictEventsPolicy::processEnableUIPatch();
+		auto di = BaseDeviceInfo::get();
+		RestrictEventsPolicy::processEnableUIPatch(&di);
 		restrictEventsPolicy.policy.registerPolicy();
 		revassetIsSet = enableAssetPatching;
 		revsbvmmIsSet = enableSbvmmPatching;
@@ -457,7 +460,6 @@ PluginConfiguration ADDPR(config) {
 		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 			if (enableMemoryUiPatching | enablePciUiPatching) {
 				// Rename existing values to invalid ones to avoid matching.
-				auto di = BaseDeviceInfo::get();
 				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
 					modelFindPatch = "MacPro7,1";
 					modelReplPatch = "HacPro7,1";
