@@ -2,6 +2,7 @@ RestrictEvents Changelog
 ========================
 #### v1.0.8
 - Added constants for macOS 13 support
+- Do not enable Memory and PCI UI patching on real Macs in `auto` mode
 
 #### v1.0.7
 - Fixed detecting CPU core count on Intel CPU with altered topology
