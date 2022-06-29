@@ -39,6 +39,7 @@ static const char *binPathSystemInformation;
 static const char binPathSystemInformationLegacy[]   = "/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
 static const char binPathSystemInformationCatalina[] = "/System/Applications/Utilities/System Information.app/Contents/MacOS/System Information";
 static const char binPathSPMemoryReporter[]          = "/System/Library/SystemProfiler/SPMemoryReporter.spreporter/Contents/MacOS/SPMemoryReporter";
+static const char binPathAboutExtension[]            = "/System/Library/ExtensionKit/Extensions/AboutExtension.appex/Contents/MacOS/AboutExtension";
 
 static const char binPathDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
 
@@ -114,6 +115,13 @@ struct RestrictEventsPolicy {
 		int pathlen = PATH_MAX;
 		if (vn_getpath(vp, path, &pathlen) == 0) {
 			//DBGLOG("rev", "csValidatePage %s", path);
+
+			if (modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(strcmp(path, binPathAboutExtension) == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
+					DBGLOG("rev", "patched %s in AboutExtension", reinterpret_cast<const char *>(modelFindPatch));
+					return;
+				}
+			}
 
 			//
 			// Mountain Lion only has the MacBookAir whitelist in System Information.
@@ -461,9 +469,10 @@ PluginConfiguration ADDPR(config) {
 			if (enableMemoryUiPatching | enablePciUiPatching) {
 				// Rename existing values to invalid ones to avoid matching.
 				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
-					modelFindPatch = "MacPro7,1";
-					modelReplPatch = "HacPro7,1";
-					modelFindSize  = sizeof("MacPro7,1");
+					// on 13.0 MacPro7,1 string literal is inlined, but "MacPro7," will do the matching.
+					modelFindPatch = "MacPro7,";
+					modelReplPatch = "HacPro7,";
+					modelFindSize  = sizeof("MacPro7,") - 1;
 					DBGLOG("rev", "detected MP71");
 				} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
 					needsMemPatch = true;
