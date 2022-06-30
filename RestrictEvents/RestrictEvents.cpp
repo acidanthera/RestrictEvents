@@ -116,19 +116,17 @@ struct RestrictEventsPolicy {
 		if (vn_getpath(vp, path, &pathlen) == 0) {
 			//DBGLOG("rev", "csValidatePage %s", path);
 
-			if (modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(strcmp(path, binPathAboutExtension) == 0)) {
-				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
-					DBGLOG("rev", "patched %s in AboutExtension", reinterpret_cast<const char *>(modelFindPatch));
-					return;
-				}
-			}
-
 			//
 			// Mountain Lion only has the MacBookAir whitelist in System Information.
 			// Mavericks has the MacBookAir/MacBookPro10 whitelist in System Information and SPMemoryReporter.
 			// Yosemite and newer have the MacBookAir/MacBookPro10 whitelist in System Information, SPMemoryReporter, and AppleSystemInfo.framework.
 			//
-			if (modelFindPatch != nullptr && UNLIKELY(strcmp(path, binPathSystemInformation) == 0)) {
+			if (modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(strcmp(path, binPathAboutExtension) == 0)) {
+				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
+					DBGLOG("rev", "patched %s in AboutExtension", reinterpret_cast<const char *>(modelFindPatch));
+					return;
+				}
+			} else if (modelFindPatch != nullptr && UNLIKELY(strcmp(path, binPathSystemInformation) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
 					DBGLOG("rev", "patched %s in System Information.app", reinterpret_cast<const char *>(modelFindPatch));
 					return;
@@ -472,6 +470,7 @@ PluginConfiguration ADDPR(config) {
 					// on 13.0 MacPro7,1 string literal is inlined, but "MacPro7," will do the matching.
 					modelFindPatch = "MacPro7,";
 					modelReplPatch = "HacPro7,";
+					// partial matching, thus exclude '\0'.
 					modelFindSize  = sizeof("MacPro7,") - 1;
 					DBGLOG("rev", "detected MP71");
 				} else if (strncmp(di.modelIdentifier, "MacBookAir", strlen("MacBookAir")) == 0) {
