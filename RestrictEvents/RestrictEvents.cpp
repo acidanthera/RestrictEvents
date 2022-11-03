@@ -272,6 +272,7 @@ struct RestrictEventsPolicy {
 		value[sizeof(duip) - 1] = '\0';
 		int i = 0;
 
+		// Disable notification prompts for mismatched memory configuration on MacPro7,1
 		if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
 			if (getKernelVersion() >= KernelVersion::Catalina) {
 				procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
@@ -292,6 +293,14 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "media", strlen("media"))) {
 			if (getKernelVersion() >= KernelVersion::Ventura) {
 				procBlacklist[i] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
+				i++;
+			}
+		}
+
+		// Systems lacking SSE4,2 will crash when telemetry plugin is loaded on Mojave+
+		if (strstr(value, "telemetry", strlen("telemetry"))) {
+			if (getKernelVersion() >= KernelVersion::Mojave) {
+				procBlacklist[i] = (char *)"/System/Library/UserEventPlugins/com.apple.telemetry.plugin/Contents/MacOS/com.apple.telemetry";
 				i++;
 			}
 		}
