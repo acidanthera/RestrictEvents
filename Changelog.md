@@ -1,5 +1,10 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.9
+- Added `revblock` for user configuration of blocking processes
+- Added optional `displaypolicyd` and `mediaanalysisd` blocking
+  - `revblock=gmux` and `revblock=media` options respectively
+
 #### v1.0.8
 - Added constants for macOS 13 support
 - Do not enable Memory and PCI UI patching on real Macs in `auto` mode

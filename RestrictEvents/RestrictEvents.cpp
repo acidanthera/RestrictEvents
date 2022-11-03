@@ -76,18 +76,14 @@ static pmCallBacks_t pmCallbacks;
 static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
+char *procBlacklist[] {};
+
 struct RestrictEventsPolicy {
 
 	/**
 	 *  Policy to restrict blacklisted process execution
 	 */
 	static int policyCheckExecve(kauth_cred_t cred, struct vnode *vp, struct vnode *scriptvp, struct label *vnodelabel, struct label *scriptlabel, struct label *execlabel, struct componentname *cnp, u_int *csflags, void *macpolicyattr, size_t macpolicyattrlen) {
-
-		static const char *procBlacklist[] {
-			"/System/Library/CoreServices/ExpansionSlotNotification",
-			"/System/Library/CoreServices/MemorySlotNotification",
-		};
-
 		char pathbuf[MAXPATHLEN];
 		int len = MAXPATHLEN;
 		int err = vn_getpath(vp, pathbuf, &len);
@@ -261,6 +257,46 @@ struct RestrictEventsPolicy {
 
 		DBGLOG("rev", "requested to patch CPU name to %s", brandStr);
 		return true;
+	}
+
+	static void getBlockedProcesses() {
+		// Updates procBlacklist with list of processes to block
+		char duip[128] { "auto" };
+		if (PE_parse_boot_argn("revblock", duip, sizeof(duip))) {
+			DBGLOG("rev", "read revblock from boot-args");
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revblock"), u"revblock", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
+			DBGLOG("rev", "read revblock from NVRAM");
+		}
+
+		char *value = reinterpret_cast<char *>(&duip[0]);
+		value[sizeof(duip) - 1] = '\0';
+		int i = 0;
+
+		if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
+			if (getKernelVersion() >= KernelVersion::Catalina) {
+				procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
+				procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
+				i += 2;
+			}
+		}
+
+		// MacBookPro9,1 and MacBookPro10,1 GMUX fails to switch with 'displaypolicyd' active in Big Sur and newer
+		if (strstr(value, "gmux", strlen("gmux"))) {
+			if (getKernelVersion() >= KernelVersion::BigSur) {
+				procBlacklist[i] = (char *)"/usr/libexec/displaypolicyd";
+				i++;
+			}
+		}
+
+		// Metal 1 GPUs will hard crash when 'mediaanalysisd' is active on Ventura and newer
+		if (strstr(value, "media", strlen("media"))) {
+			if (getKernelVersion() >= KernelVersion::Ventura) {
+				procBlacklist[i] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
+				i++;
+			}
+		}
+
+		DBGLOG("rev", "revblock to block %s", duip);
 	}
 
 	static uint32_t getCoreCount() {
@@ -458,6 +494,7 @@ PluginConfiguration ADDPR(config) {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		auto di = BaseDeviceInfo::get();
+		RestrictEventsPolicy::getBlockedProcesses();
 		RestrictEventsPolicy::processEnableUIPatch(&di);
 		restrictEventsPolicy.policy.registerPolicy();
 		revassetIsSet = enableAssetPatching;
@@ -486,12 +523,12 @@ PluginConfiguration ADDPR(config) {
 					modelFindSize  = sizeof("MacBookPro10");
 					DBGLOG("rev", "detected MBP10");
 				}
-				
+
 				if (modelFindPatch != nullptr) {
 					binPathSystemInformation = getKernelVersion() >= KernelVersion::Catalina ? binPathSystemInformationCatalina : binPathSystemInformationLegacy;
 				}
 			}
-			
+
 			needsCpuNamePatch = enableCpuNamePatching ? RestrictEventsPolicy::needsCpuNamePatch() : false;
 			if (modelFindPatch != nullptr || needsCpuNamePatch || enableDiskArbitrationPatching ||
 				(getKernelVersion() >= KernelVersion::Monterey ||
@@ -509,7 +546,7 @@ PluginConfiguration ADDPR(config) {
 						if (!vnodePagerOpsKernel)
 							SYSLOG("rev", "failed to solve _vnode_pager_ops");
 					}
-					
+
 					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
 						SYSLOG("rev", "failed to route cs validation pages");
 					if ((getKernelVersion() >= KernelVersion::Monterey ||
