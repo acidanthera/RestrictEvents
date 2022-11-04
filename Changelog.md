@@ -5,7 +5,6 @@ RestrictEvents Changelog
 - Added additional process blocking:
   - `gmux` - block displaypolicyd on Big Sur+ (for genuine MacBookPro9,1/10,1)
   - `media` - block mediaanalysisd on Ventura+ (for Metal 1 GPUs)
-  - `telemetry` - block telemetry plugin on Mojave+ (for SSE4,1 CPUs)
 
 #### v1.0.8
 - Added constants for macOS 13 support

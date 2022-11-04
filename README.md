@@ -37,7 +37,6 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
   - `pcie` - block ExpansionSlotNotification and MemorySlotNotification on Catalina+ (for MacPro7,1 SMBIOS)
   - `gmux` - block displaypolicyd on Big Sur+ (for genuine MacBookPro9,1/10,1)
   - `media` - block mediaanalysisd on Ventura+ (for Metal 1 GPUs)
-  - `telemetry` - block telemetry plugin on Mojave+ (for SSE4,1 CPUs)
   - `none` - disable all blocking
   - `auto` - same as `pcie`
 

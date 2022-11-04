@@ -301,15 +301,6 @@ struct RestrictEventsPolicy {
 			}
 		}
 
-		// Systems lacking SSE4,2 will crash when telemetry plugin is loaded on Mojave+
-		if (strstr(value, "telemetry", strlen("telemetry"))) {
-			if (getKernelVersion() >= KernelVersion::Mojave) {
-				DBGLOG("rev", "disabling telemetry");
-				procBlacklist[i] = (char *)"/System/Library/UserEventPlugins/com.apple.telemetry.plugin/Contents/MacOS/com.apple.telemetry";
-				i++;
-			}
-		}
-
 		DBGLOG("rev", "blocked %d processes", i);
 		for (auto &proc : procBlacklist) {
 			if (proc == nullptr) break;
