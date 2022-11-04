@@ -275,9 +275,9 @@ struct RestrictEventsPolicy {
 
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
 		if (strcmp(info->modelIdentifier, "MacPro7,1")) {
-			if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
+			if (strstr(value, "pci", strlen("pci")) || strstr(value, "auto", strlen("auto"))) {
 				if (getKernelVersion() >= KernelVersion::Catalina) {
-					DBGLOG("rev", "disabling PCIe memory notification");
+					DBGLOG("rev", "disabling PCIe & memory notifications");
 					procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
 					procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
 					i += 2;
@@ -303,7 +303,6 @@ struct RestrictEventsPolicy {
 			}
 		}
 
-		DBGLOG("rev", "blocked %d processes", i);
 		for (auto &proc : procBlacklist) {
 			if (proc == nullptr) break;
 			DBGLOG("rev", "blocking %s", proc);
