@@ -76,7 +76,7 @@ static pmCallBacks_t pmCallbacks;
 static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
-char *procBlacklist[] {};
+char *procBlacklist[10] = {};
 
 struct RestrictEventsPolicy {
 
@@ -93,6 +93,7 @@ struct RestrictEventsPolicy {
 			DBGLOG_COND(verboseProcessLogging, "rev", "got request %s", pathbuf);
 
 			for (auto &proc : procBlacklist) {
+				if (proc == nullptr) break;
 				if (strcmp(pathbuf, proc) == 0) {
 					DBGLOG("rev", "restricting process %s", pathbuf);
 					return EPERM;
@@ -275,6 +276,7 @@ struct RestrictEventsPolicy {
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
 		if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
 			if (getKernelVersion() >= KernelVersion::Catalina) {
+				DBGLOG("rev", "disabling PCIe memory notification");
 				procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
 				procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
 				i += 2;
@@ -284,6 +286,7 @@ struct RestrictEventsPolicy {
 		// MacBookPro9,1 and MacBookPro10,1 GMUX fails to switch with 'displaypolicyd' active in Big Sur and newer
 		if (strstr(value, "gmux", strlen("gmux"))) {
 			if (getKernelVersion() >= KernelVersion::BigSur) {
+				DBGLOG("rev", "disabling displaypolicyd");
 				procBlacklist[i] = (char *)"/usr/libexec/displaypolicyd";
 				i++;
 			}
@@ -292,6 +295,7 @@ struct RestrictEventsPolicy {
 		// Metal 1 GPUs will hard crash when 'mediaanalysisd' is active on Ventura and newer
 		if (strstr(value, "media", strlen("media"))) {
 			if (getKernelVersion() >= KernelVersion::Ventura) {
+				DBGLOG("rev", "disabling mediaanalysisd");
 				procBlacklist[i] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
 				i++;
 			}
@@ -300,12 +304,17 @@ struct RestrictEventsPolicy {
 		// Systems lacking SSE4,2 will crash when telemetry plugin is loaded on Mojave+
 		if (strstr(value, "telemetry", strlen("telemetry"))) {
 			if (getKernelVersion() >= KernelVersion::Mojave) {
+				DBGLOG("rev", "disabling telemetry");
 				procBlacklist[i] = (char *)"/System/Library/UserEventPlugins/com.apple.telemetry.plugin/Contents/MacOS/com.apple.telemetry";
 				i++;
 			}
 		}
 
-		DBGLOG("rev", "revblock to block %s", duip);
+		DBGLOG("rev", "blocked %d processes", i);
+		for (auto &proc : procBlacklist) {
+			if (proc == nullptr) break;
+			DBGLOG("rev", "blocking %s", proc);
+		}
 	}
 
 	static uint32_t getCoreCount() {
