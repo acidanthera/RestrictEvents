@@ -271,10 +271,10 @@ struct RestrictEventsPolicy {
 
 		char *value = reinterpret_cast<char *>(&duip[0]);
 		value[sizeof(duip) - 1] = '\0';
-		int i = 0;
+		size_t i = 0;
 
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
-		if (strcmp(info->modelIdentifier, "MacPro7,1")) {
+		if (strcmp(info->modelIdentifier, "MacPro7,1") == 0) {
 			if (strstr(value, "pci", strlen("pci")) || strstr(value, "auto", strlen("auto"))) {
 				if (getKernelVersion() >= KernelVersion::Catalina) {
 					DBGLOG("rev", "disabling PCIe & memory notifications");
