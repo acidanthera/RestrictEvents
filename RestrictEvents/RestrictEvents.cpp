@@ -260,7 +260,7 @@ struct RestrictEventsPolicy {
 		return true;
 	}
 
-	static void getBlockedProcesses() {
+	static void getBlockedProcesses(BaseDeviceInfo *info) {
 		// Updates procBlacklist with list of processes to block
 		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revblock", duip, sizeof(duip))) {
@@ -274,12 +274,14 @@ struct RestrictEventsPolicy {
 		int i = 0;
 
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
-		if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
-			if (getKernelVersion() >= KernelVersion::Catalina) {
-				DBGLOG("rev", "disabling PCIe memory notification");
-				procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
-				procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
-				i += 2;
+		if (strcmp(info->modelIdentifier, "MacPro7,1") {
+			if (strstr(value, "pcie", strlen("pcie")) || strstr(value, "auto", strlen("auto"))) {
+				if (getKernelVersion() >= KernelVersion::Catalina) {
+					DBGLOG("rev", "disabling PCIe memory notification");
+					procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
+					procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
+					i += 2;
+				}
 			}
 		}
 
@@ -503,7 +505,7 @@ PluginConfiguration ADDPR(config) {
 		DBGLOG("rev", "restriction policy plugin loaded");
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		auto di = BaseDeviceInfo::get();
-		RestrictEventsPolicy::getBlockedProcesses();
+		RestrictEventsPolicy::getBlockedProcesses(&di);
 		RestrictEventsPolicy::processEnableUIPatch(&di);
 		restrictEventsPolicy.policy.registerPolicy();
 		revassetIsSet = enableAssetPatching;
