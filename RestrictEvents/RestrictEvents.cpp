@@ -270,7 +270,7 @@ struct RestrictEventsPolicy {
 		}
 
 		char *value = reinterpret_cast<char *>(&duip[0]);
-		value[sizeof(duip) - 1] = '\0';
+		value[strlen(duip) - 1] = '\0';
 		size_t i = 0;
 
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
