@@ -24,7 +24,7 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 - `-revproc` to enable verbose process logging (in DEBUG builds)
 - `revpatch=value` to enable patching as comma separated options. Default value is `auto`.
   - `memtab` - enable memory tab in System Information on MacBookAir and MacBookPro10,x platforms
-  - `pci` - prevent PCI configuration warnings on MacPro7,1 platforms
+  - `pci` - prevent PCI configuration warnings in System Settings on MacPro7,1 platforms
   - `cpuname` - custom CPU name in System Information
   - `diskread` - disables uninitialized disk warning in Finder
   - `asset` - allows Content Caching when `sysctl kern.hv_vmm_present` returns `1` on macOS 11.3 or newer
@@ -34,7 +34,7 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
 - `revblock=value` to block processes as comma separated options. Default value is `auto`.
-  - `pci` - block ExpansionSlotNotification and MemorySlotNotification on Catalina+ (for MacPro7,1 SMBIOS)
+  - `pci` - prevent PCI and RAM configuration notifications on MacPro7,1 platforms
   - `gmux` - block displaypolicyd on Big Sur+ (for genuine MacBookPro9,1/10,1)
   - `media` - block mediaanalysisd on Ventura+ (for Metal 1 GPUs)
   - `none` - disable all blocking
