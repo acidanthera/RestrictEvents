@@ -265,11 +265,12 @@ struct RestrictEventsPolicy {
 		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revblock", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revblock from boot-args");
-		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revblock"), u"revblock", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip) - 1)) {
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revblock"), u"revblock", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
 			DBGLOG("rev", "read revblock from NVRAM");
 		}
 
 		char *value = reinterpret_cast<char *>(&duip[0]);
+		value[sizeof(duip) - 1] = '\0';
 		size_t i = 0;
 
 		// Disable notification prompts for mismatched memory configuration on MacPro7,1
@@ -343,11 +344,12 @@ struct RestrictEventsPolicy {
 		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revpatch", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revpatch from boot-args");
-		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revpatch"), u"revpatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip) - 1)) {
+		} else if (readNvramVariable(NVRAM_PREFIX(LILU_VENDOR_GUID, "revpatch"), u"revpatch", &EfiRuntimeServices::LiluVendorGuid, duip, sizeof(duip))) {
 			DBGLOG("rev", "read revpatch from NVRAM");
 		}
 
 		char *value = reinterpret_cast<char *>(&duip[0]);
+		value[sizeof(duip) - 1] = '\0';
 
 		if (strstr(value, "memtab", strlen("memtab"))) {
 			enableMemoryUiPatching = true;
