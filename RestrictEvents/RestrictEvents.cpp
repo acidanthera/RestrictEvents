@@ -76,7 +76,7 @@ static pmCallBacks_t pmCallbacks;
 static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
-char *procBlacklist[10] = {};
+const char *procBlacklist[10] = {};
 
 struct RestrictEventsPolicy {
 
@@ -278,9 +278,8 @@ struct RestrictEventsPolicy {
 			if (strstr(value, "pci", strlen("pci")) || strstr(value, "auto", strlen("auto"))) {
 				if (getKernelVersion() >= KernelVersion::Catalina) {
 					DBGLOG("rev", "disabling PCIe & memory notifications");
-					procBlacklist[i] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
-					procBlacklist[i+1] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
-					i += 2;
+					procBlacklist[i++] = (char *)"/System/Library/CoreServices/ExpansionSlotNotification";
+					procBlacklist[i++] = (char *)"/System/Library/CoreServices/MemorySlotNotification";
 				}
 			}
 		}
@@ -289,8 +288,7 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "gmux", strlen("gmux"))) {
 			if (getKernelVersion() >= KernelVersion::BigSur) {
 				DBGLOG("rev", "disabling displaypolicyd");
-				procBlacklist[i] = (char *)"/usr/libexec/displaypolicyd";
-				i++;
+				procBlacklist[i++] = (char *)"/usr/libexec/displaypolicyd";
 			}
 		}
 
@@ -298,8 +296,7 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "media", strlen("media"))) {
 			if (getKernelVersion() >= KernelVersion::Ventura) {
 				DBGLOG("rev", "disabling mediaanalysisd");
-				procBlacklist[i] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
-				i++;
+				procBlacklist[i++] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
 			}
 		}
 
