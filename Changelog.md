@@ -1,5 +1,14 @@
 RestrictEvents Changelog
 ========================
+#### v1.0.9
+- Added `revblock` for user configuration of blocking processes
+- Added additional process blocking:
+  - `gmux` - block displaypolicyd on Big Sur+ (for genuine MacBookPro9,1/10,1)
+  - `media` - block mediaanalysisd on Ventura+ (for Metal 1 GPUs)
+  - `pci` - block PCIe & memory notifications (for MacPro7,1 SMBIOS)
+    - Previous unconditional
+  - `auto` - same as `pci`, set by default
+
 #### v1.0.8
 - Added constants for macOS 13 support
 - Do not enable Memory and PCI UI patching on real Macs in `auto` mode

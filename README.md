@@ -33,9 +33,15 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
   - `auto` - same as `memtab,pci,cpuname`, without `memtab` and `pci` patches being applied on real Macs
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
 - `revcpuname=value` custom CPU brand string (max 48 characters, 20 or less recommended, taken from CPUID otherwise)
+- `revblock=value` to block processes as comma separated options. Default value is `auto`.
+  - `pci` - block ExpansionSlotNotification and MemorySlotNotification on Catalina+ (for MacPro7,1 SMBIOS)
+  - `gmux` - block displaypolicyd on Big Sur+ (for genuine MacBookPro9,1/10,1)
+  - `media` - block mediaanalysisd on Ventura+ (for Metal 1 GPUs)
+  - `none` - disable all blocking
+  - `auto` - same as `pci`
 
-_Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revpatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` NVRAM variables work the same as the boot arguments, but have lower priority.
+_Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revpatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revblock` NVRAM variables work the same as the boot arguments, but have lower priority.
 
 #### Credits
-- [Apple](https://www.apple.com) for macOS  
-- [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) and great help in implementing some features 
+- [Apple](https://www.apple.com) for macOS
+- [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) and great help in implementing some features
