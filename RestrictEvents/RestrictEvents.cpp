@@ -293,9 +293,10 @@ struct RestrictEventsPolicy {
 		}
 
 		// Metal 1 GPUs will hard crash when 'mediaanalysisd' is active on Ventura and newer
+		// Metal 1 GPUs do not support Continuity Camera
 		if (strstr(value, "media", strlen("media"))) {
 			if (getKernelVersion() >= KernelVersion::Ventura) {
-				DBGLOG("rev", "disabling mediaanalysisd");
+				DBGLOG("rev", "disabling mediaanalysisd & ContinuityCaptureAgent");
 				procBlacklist[i++] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
 				procBlacklist[i++] = (char *)"/usr/libexec/ContinuityCaptureAgent";
 			}
