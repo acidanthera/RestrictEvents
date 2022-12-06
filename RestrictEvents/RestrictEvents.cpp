@@ -297,6 +297,7 @@ struct RestrictEventsPolicy {
 			if (getKernelVersion() >= KernelVersion::Ventura) {
 				DBGLOG("rev", "disabling mediaanalysisd");
 				procBlacklist[i++] = (char *)"/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd";
+				procBlacklist[i++] = (char *)"/usr/libexec/ContinuityCaptureAgent";
 			}
 		}
 
