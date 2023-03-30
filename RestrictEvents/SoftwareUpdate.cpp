@@ -159,6 +159,19 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
 	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
 }
 
+static mach_vm_address_t org_sysctl_f16c; // hw.optional.f16c
+static int my_sysctl_f16c(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
+	char procname[64];
+	proc_name(proc_pid(req->p), procname, sizeof(procname));
+	if (strcmp(procname, "com.apple.CoreGraphics") == 0) {
+		int f16c_off = 0;
+		return SYSCTL_OUT(req, &f16c_off, sizeof(f16c_off));
+	}
+
+	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
+}
+
+
 void rerouteHvVmm(KernelPatcher &patcher) {
 	auto sysctl_children = reinterpret_cast<sysctl_oid_list *>(patcher.solveSymbol(KernelPatcher::KernelID, "_sysctl__children"));
 	if (!sysctl_children) {
@@ -176,6 +189,28 @@ void rerouteHvVmm(KernelPatcher &patcher) {
 	org_sysctl_vmm_present = patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(vmm_present->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_vmm_present), true);
 	if (!org_sysctl_vmm_present) {
 		SYSLOG("supd", "failed to route kern.hv_vmm_present sysctl");
+		patcher.clearError();
+		return;
+	}
+}
+
+void reroutef16c(KernelPatcher &patcher) {
+	auto sysctl_children = reinterpret_cast<sysctl_oid_list *>(patcher.solveSymbol(KernelPatcher::KernelID, "_sysctl__children"));
+	if (!sysctl_children) {
+		SYSLOG("supd", "failed to resolve _sysctl__children");
+		return;
+	}
+	
+	// WARN: sysctl_children access should be locked. Unfortunately the lock is not exported.
+	sysctl_oid *f16c = sysctl_by_name(sysctl_children, "hw.optional.f16c");
+	if (!f16c) {
+		SYSLOG("supd", "failed to resolve hw.optional.f16c sysctl");
+		return;
+	}
+	
+	org_sysctl_f16c = patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(f16c->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_f16c), true);
+	if (!org_sysctl_f16c) {
+		SYSLOG("supd", "failed to route hw.optional.f16c sysctl");
 		patcher.clearError();
 		return;
 	}
