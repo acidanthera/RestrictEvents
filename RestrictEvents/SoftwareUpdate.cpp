@@ -168,7 +168,7 @@ static int my_sysctl_f16c(__unused struct sysctl_oid *oidp, __unused void *arg1,
 		return SYSCTL_OUT(req, &f16c_off, sizeof(f16c_off));
 	}
 
-	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
+	return FunctionCast(my_sysctl_f16c, org_sysctl_f16c)(oidp, arg1, arg2, req);
 }
 
 
