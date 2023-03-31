@@ -567,7 +567,7 @@ PluginConfiguration ADDPR(config) {
 						rerouteHvVmm(patcher);
 					if ((enableF16cPatching) &&
 						(getKernelVersion() > KernelVersion::Ventura ||
-						 (getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() >= 4)))
+						(getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() >= 4)))
 						reroutef16c(patcher);
 				});
 			}
