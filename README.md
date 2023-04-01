@@ -29,6 +29,7 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
   - `diskread` - disables uninitialized disk warning in Finder
   - `asset` - allows Content Caching when `sysctl kern.hv_vmm_present` returns `1` on macOS 11.3 or newer
   - `sbvmm` - forces VMM SB model, allowing OTA updates for unsupported models on macOS 11.3 or newer
+  - `f16c` - resolve CoreGraphics crashing on Ivy Bridge CPUs by disabling f16c instruction set reporting in macOS 13.3 or newer
   - `none` - disable all patching
   - `auto` - same as `memtab,pci,cpuname`, without `memtab` and `pci` patches being applied on real Macs
 - `revcpu=value` to enable (`1`, non-Intel default)/disable (`0`, Intel default) CPU brand string patching.
