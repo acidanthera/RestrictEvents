@@ -159,7 +159,6 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
 	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
 }
 
-static mach_vm_address_t org_sysctl_f16c; // hw.optional.f16c
 static int my_sysctl_f16c(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
 	int f16c_off = 0;
 	return SYSCTL_OUT(req, &f16c_off, sizeof(f16c_off));
@@ -202,8 +201,7 @@ void reroutef16c(KernelPatcher &patcher) {
 		return;
 	}
 	
-	org_sysctl_f16c = patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(f16c->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_f16c), true);
-	if (!org_sysctl_f16c) {
+	if (!patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(f16c->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_f16c), true)) {
 		SYSLOG("supd", "failed to route hw.optional.f16c sysctl");
 		patcher.clearError();
 		return;
