@@ -1,5 +1,10 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.0
+- Added `hw.optional.f16c` disabling for macOS 13.3+
+  - Resolves CoreGraphics.framework invoking AVX2.0 code paths on Ivy Bridge CPUs
+  - Configurable via `revpatch`'s `f16c` argument
+
 #### v1.0.9
 - Added `revblock` for user configuration of blocking processes
 - Added additional process blocking:

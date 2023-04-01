@@ -49,6 +49,7 @@ static bool enableCpuNamePatching;
 static bool enableDiskArbitrationPatching;
 static bool enableAssetPatching;
 static bool enableSbvmmPatching;
+static bool enableF16cPatching;
 
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
@@ -369,6 +370,9 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "sbvmm", strlen("sbvmm"))) {
 			enableSbvmmPatching = true;
 		}
+		if (strstr(value, "f16c", strlen("f16c"))) {
+			enableF16cPatching = true;
+		}
 		if (strstr(value, "auto", strlen("auto"))) {
 			// Do not enable Memory and PCI UI patching on real Macs
 			// Reference: https://github.com/acidanthera/bugtracker/issues/2046
@@ -484,6 +488,7 @@ struct RestrictEventsPolicy {
 static RestrictEventsPolicy restrictEventsPolicy;
 
 void rerouteHvVmm(KernelPatcher &patcher);
+void reroutef16c(KernelPatcher &patcher);
 
 PluginConfiguration ADDPR(config) {
 	xStringify(PRODUCT_NAME),
@@ -560,6 +565,10 @@ PluginConfiguration ADDPR(config) {
 						(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4)) &&
 						(revsbvmmIsSet || revassetIsSet))
 						rerouteHvVmm(patcher);
+					if ((enableF16cPatching) &&
+						(getKernelVersion() > KernelVersion::Ventura ||
+						(getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() >= 4)))
+						reroutef16c(patcher);
 				});
 			}
 		}
