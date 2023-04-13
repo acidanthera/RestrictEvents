@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.1
+- Fixed `f16c` patch misreporting other `hw.optional` features
+
 #### v1.1.0
 - Added `hw.optional.f16c` disabling for macOS 13.3+
   - Resolves CoreGraphics.framework invoking AVX2.0 code paths on Ivy Bridge CPUs

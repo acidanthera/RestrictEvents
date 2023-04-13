@@ -159,9 +159,16 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
 	return FunctionCast(my_sysctl_vmm_present, org_sysctl_vmm_present)(oidp, arg1, arg2, req);
 }
 
-static int my_sysctl_f16c(__unused struct sysctl_oid *oidp, __unused void *arg1, int arg2, struct sysctl_req *req) {
-	int f16c_off = 0;
-	return SYSCTL_OUT(req, &f16c_off, sizeof(f16c_off));
+
+static mach_vm_address_t org_sysctl_f16c;
+static int my_sysctl_f16c(__unused struct sysctl_oid *oidp, void *arg1, int arg2, struct sysctl_req *req) {
+	// Strip F16C bit from arg1
+	// Ref: https://github.com/apple-oss-distributions/xnu/blob/xnu-8020.101.4/bsd/kern/kern_mib.c#L935-L946
+	int mask = (uint64_t) (uintptr_t) arg1 & ~kHasF16C;
+
+	// Convert back
+	arg1 = (void *) (uintptr_t) mask;
+	return FunctionCast(my_sysctl_f16c, org_sysctl_f16c)(oidp, arg1, arg2, req);
 }
 
 
@@ -200,8 +207,10 @@ void reroutef16c(KernelPatcher &patcher) {
 		SYSLOG("supd", "failed to resolve hw.optional.f16c sysctl");
 		return;
 	}
-	
-	if (!patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(f16c->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_f16c), true)) {
+
+	org_sysctl_f16c = patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(f16c->oid_handler), reinterpret_cast<mach_vm_address_t>(my_sysctl_f16c), true);
+
+	if (!org_sysctl_f16c) {
 		SYSLOG("supd", "failed to route hw.optional.f16c sysctl");
 		patcher.clearError();
 		return;

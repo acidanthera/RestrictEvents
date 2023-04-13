@@ -27,6 +27,8 @@
 
 #define HW_PRODUCT      27
 
+#define kHasF16C        0x04000000
+
 typedef int (* sysctl_handler_t)(struct sysctl_oid *oidp __unused, void *arg1 __unused, int arg2 __unused, struct sysctl_req *req);
 
 struct sysctl_oid {
