@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.2
+- Added constants for macOS 14 support
+
 #### v1.1.1
 - Fixed `f16c` patch misreporting other `hw.optional` features
 
