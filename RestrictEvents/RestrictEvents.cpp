@@ -512,7 +512,7 @@ PluginConfiguration ADDPR(config) {
 		revassetIsSet = enableAssetPatching;
 		revsbvmmIsSet = enableSbvmmPatching;
 
-		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+		if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0 || (lilu.getRunMode() & LiluAPI::AllowInstallerRecovery) != 0) {
 			if (enableMemoryUiPatching | enablePciUiPatching) {
 				// Rename existing values to invalid ones to avoid matching.
 				if (strcmp(di.modelIdentifier, "MacPro7,1") == 0) {
@@ -546,21 +546,24 @@ PluginConfiguration ADDPR(config) {
 				(getKernelVersion() >= KernelVersion::Monterey ||
 				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
-					if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
-					KernelPatcher::RouteRequest csRoute =
+					if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
+						if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();
+						KernelPatcher::RouteRequest csRoute =
 						getKernelVersion() >= KernelVersion::BigSur ?
 						KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageBigSur, orgCsValidateFunc) :
-							(getKernelVersion() >= KernelVersion::Sierra ?
-							KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRangeSierra, orgCsValidateFunc) :
-							KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageMountainLion, orgCsValidateFunc));
-					if (getKernelVersion() < KernelVersion::Sierra) {
-						vnodePagerOpsKernel = reinterpret_cast<void *>(patcher.solveSymbol(KernelPatcher::KernelID, "_vnode_pager_ops"));
-						if (!vnodePagerOpsKernel)
-							SYSLOG("rev", "failed to solve _vnode_pager_ops");
+						(getKernelVersion() >= KernelVersion::Sierra ?
+						 KernelPatcher::RouteRequest("_cs_validate_range", RestrictEventsPolicy::csValidateRangeSierra, orgCsValidateFunc) :
+						 KernelPatcher::RouteRequest("_cs_validate_page", RestrictEventsPolicy::csValidatePageMountainLion, orgCsValidateFunc));
+						if (getKernelVersion() < KernelVersion::Sierra) {
+							vnodePagerOpsKernel = reinterpret_cast<void *>(patcher.solveSymbol(KernelPatcher::KernelID, "_vnode_pager_ops"));
+							if (!vnodePagerOpsKernel)
+								SYSLOG("rev", "failed to solve _vnode_pager_ops");
+						}
+						
+						if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
+							SYSLOG("rev", "failed to route cs validation pages");
 					}
-
-					if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
-						SYSLOG("rev", "failed to route cs validation pages");
+					// Perform regardless of Normal vs Installer
 					if ((getKernelVersion() >= KernelVersion::Monterey ||
 						(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4)) &&
 						(revsbvmmIsSet || revassetIsSet))
