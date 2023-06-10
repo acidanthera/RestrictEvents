@@ -148,7 +148,7 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
 	char procname[64];
 	proc_name(proc_pid(req->p), procname, sizeof(procname));
 	// SYSLOG("supd", "\n\n\n\nsoftwareupdated vmm_present %d - >>> %s <<<<\n\n\n\n", arg2, procname);
-	if (revsbvmmIsSet && (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0)) {
+	if (revsbvmmIsSet && ((lilu.getRunMode() & LiluAPI::RunningInstallerRecovery) || (strcmp(procname, "softwareupdated") == 0 || strcmp(procname, "com.apple.Mobile") == 0))) {
 		int hv_vmm_present_on = 1;
 		return SYSCTL_OUT(req, &hv_vmm_present_on, sizeof(hv_vmm_present_on));
 	} else if (revassetIsSet && (strncmp(procname, "AssetCache",  sizeof("AssetCache")-1) == 0)) {
