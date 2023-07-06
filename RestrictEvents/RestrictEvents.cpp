@@ -43,6 +43,8 @@ static const char binPathAboutExtension[]            = "/System/Library/Extensio
 
 static const char binPathDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
 
+static const char binPathSoftwareUpdateCoreSupport[] = "/System/Library/PrivateFrameworks/SoftwareUpdateCoreSupport.framework/Versions/A/SoftwareUpdateCoreSupport";
+
 static bool enableMemoryUiPatching;
 static bool enablePciUiPatching;
 static bool enableCpuNamePatching;
@@ -50,6 +52,7 @@ static bool enableDiskArbitrationPatching;
 static bool enableAssetPatching;
 static bool enableSbvmmPatching;
 static bool enableF16cPatching;
+static bool enableSoftwareUpdatePatching;
 
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
@@ -76,6 +79,35 @@ static pmCallBacks_t pmCallbacks;
 
 static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
+
+static uint8_t findSoftwareUpdate[] = {
+	0xE8, 0x00, 0x00, 0x00, 0x00, // call __BIDeviceInfoGetMacPlatformType
+	0x49, 0x89, 0xC6,             // mov r14, rax
+	0x48, 0xFF, 0xC8,             // dec rax
+	0x48, 0x83, 0xF8, 0x02,       // cmp rax, 0x2
+	0x73                          // jae
+};
+static uint8_t findMaskSoftwareUpdate[] = {
+	0xFF, 0x00, 0x00, 0x00, 0x00,
+	0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF
+};
+static uint8_t replSoftwareUpdate[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0xEB                          // jmp
+};
+static uint8_t replMaskSoftwareUpdate[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0xFF
+};
 
 const char *procBlacklist[10] = {};
 
@@ -142,6 +174,13 @@ struct RestrictEventsPolicy {
 					return;
 				}
 			} else if (UserPatcher::matchSharedCachePath(path)) {
+				if (enableSoftwareUpdatePatching) {
+					if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, findSoftwareUpdate, findMaskSoftwareUpdate, replSoftwareUpdate, replMaskSoftwareUpdate, 1, 0))) {
+						DBGLOG("rev", "patched sw update model check in dyld/SoftwareUpdateCoreSupport");
+						return;
+					}
+				}
+
 				// Model check and CPU name may exist in the same page in AppleSystemInfo.
 				if (needsMemPatch && getKernelVersion() >= KernelVersion::Yosemite) {
 					if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, memFindPatch, sizeof(memFindPatch), memReplPatch, sizeof(memFindPatch)))) {
@@ -339,9 +378,9 @@ struct RestrictEventsPolicy {
 	}
 
 	/**
-	 * Retrieve which system UI is to be enabled
+	 * Retrieve which patches should be enabled
 	 */
-	static void processEnableUIPatch(BaseDeviceInfo *info) {
+	static void processEnablePatches(BaseDeviceInfo *info) {
 		char duip[128] { "auto" };
 		if (PE_parse_boot_argn("revpatch", duip, sizeof(duip))) {
 			DBGLOG("rev", "read revpatch from boot-args");
@@ -373,12 +412,16 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "f16c", strlen("f16c"))) {
 			enableF16cPatching = true;
 		}
+		if (strstr(value, "swupd", strlen("swupd"))) {
+			enableSoftwareUpdatePatching = true;
+		}
 		if (strstr(value, "auto", strlen("auto"))) {
 			// Do not enable Memory and PCI UI patching on real Macs
 			// Reference: https://github.com/acidanthera/bugtracker/issues/2046
 			enableMemoryUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 			enablePciUiPatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 			enableCpuNamePatching = true;
+			enableSoftwareUpdatePatching = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple && getKernelVersion() >= KernelVersion::Sonoma && strcmp(info->modelIdentifier, "iMac19,1") != 0;
 		}
 
 		DBGLOG("rev", "revpatch to enable %s", duip);
@@ -507,7 +550,7 @@ PluginConfiguration ADDPR(config) {
 		verboseProcessLogging = checkKernelArgument("-revproc");
 		auto di = BaseDeviceInfo::get();
 		RestrictEventsPolicy::getBlockedProcesses(&di);
-		RestrictEventsPolicy::processEnableUIPatch(&di);
+		RestrictEventsPolicy::processEnablePatches(&di);
 		restrictEventsPolicy.policy.registerPolicy();
 		revassetIsSet = enableAssetPatching;
 		revsbvmmIsSet = enableSbvmmPatching;
@@ -542,7 +585,7 @@ PluginConfiguration ADDPR(config) {
 			}
 
 			needsCpuNamePatch = enableCpuNamePatching ? RestrictEventsPolicy::needsCpuNamePatch() : false;
-			if (modelFindPatch != nullptr || needsCpuNamePatch || enableDiskArbitrationPatching ||
+			if (modelFindPatch != nullptr || enableSoftwareUpdatePatching || needsCpuNamePatch || enableDiskArbitrationPatching ||
 				(getKernelVersion() >= KernelVersion::Monterey ||
 				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
