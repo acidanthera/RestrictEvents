@@ -43,8 +43,6 @@ static const char binPathAboutExtension[]            = "/System/Library/Extensio
 
 static const char binPathDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
 
-static const char binPathSoftwareUpdateCoreSupport[] = "/System/Library/PrivateFrameworks/SoftwareUpdateCoreSupport.framework/Versions/A/SoftwareUpdateCoreSupport";
-
 static bool enableMemoryUiPatching;
 static bool enablePciUiPatching;
 static bool enableCpuNamePatching;
@@ -151,7 +149,11 @@ struct RestrictEventsPolicy {
 			// Mavericks has the MacBookAir/MacBookPro10 whitelist in System Information and SPMemoryReporter.
 			// Yosemite and newer have the MacBookAir/MacBookPro10 whitelist in System Information, SPMemoryReporter, and AppleSystemInfo.framework.
 			//
-			if (modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(strcmp(path, binPathAboutExtension) == 0)) {
+			if (enableSoftwareUpdatePatching && UNLIKELY(strstr(path, "UpdateBrainLibrary.dylib") != nullptr)) {
+				if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, findSoftwareUpdate, findMaskSoftwareUpdate, replSoftwareUpdate, replMaskSoftwareUpdate, 1, 0))) {
+					DBGLOG("rev", "patched sw update model check in %s", path);
+				}
+			} else if (modelFindPatch != nullptr && getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(strcmp(path, binPathAboutExtension) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, modelFindPatch, modelFindSize, modelReplPatch, modelFindSize))) {
 					DBGLOG("rev", "patched %s in AboutExtension", reinterpret_cast<const char *>(modelFindPatch));
 					return;
@@ -177,7 +179,6 @@ struct RestrictEventsPolicy {
 				if (enableSoftwareUpdatePatching) {
 					if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, findSoftwareUpdate, findMaskSoftwareUpdate, replSoftwareUpdate, replMaskSoftwareUpdate, 1, 0))) {
 						DBGLOG("rev", "patched sw update model check in dyld/SoftwareUpdateCoreSupport");
-						return;
 					}
 				}
 
