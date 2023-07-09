@@ -43,23 +43,6 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 
 _Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revpatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revblock` NVRAM variables work the same as the boot arguments, but have lower priority.
 
-#### Removing badges
-
-If using RestrictEvents to block PCI and RAM configuration notifications, they will go away, but the alert in the Apple menu will stay. To get rid of this alert, run the following commands:
-
-```
-defaults delete com.apple.SlotNotificationsPref memoryBadgeCount
-defaults delete com.apple.SlotNotificationsPref expansionBadgeCount
-```
-
-<!-- For posterity
-- Software update badge:
-  - Monterey and lower: `defaults delete com.apple.systempreferences AttentionPrefBundleIDs` (checks for `com.apple.preferences.softwareupdate`)
-  - Ventura and higher: `defaults delete ~/Library/Preferences/com.apple.systempreferences.plist AttentionPrefBundleIDs` (checks for `com.apple.FollowUpSettings.FollowUpSettingsExtension`)
-    - Full path is required because `defaults` attempts to access a sandboxed path otherwise
-- App store updates: `defaults delete com.apple.appstored BadgeCount`
--->
-
 #### Credits
 - [Apple](https://www.apple.com) for macOS
 - [vit9696](https://github.com/vit9696) for [Lilu.kext](https://github.com/vit9696/Lilu) and great help in implementing some features
