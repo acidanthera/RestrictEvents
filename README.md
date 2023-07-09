@@ -43,7 +43,7 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
 
 _Note_: `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revpatch`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpu`, `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revcpuname` and `4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:revblock` NVRAM variables work the same as the boot arguments, but have lower priority.
 
-#### Removing badges
+#### Removing badges (This works until macOS 13)
 
 If using RestrictEvents to block PCI and RAM configuration notifications, they will go away, but the alert in the Apple menu will stay. To get rid of this alert, run the following commands:
 
