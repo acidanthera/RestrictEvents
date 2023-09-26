@@ -1,5 +1,11 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.3
+- Expanded `sbvmm` to support more environments:
+  - macOS install applications (ex. `Install macOS Sonoma.app`)
+  - Booted installer and recoveryOS
+    - `-no_compat_check` or boot.efi patch required to pass bootloaders' compatibility checks
+
 #### v1.1.2
 - Added constants for macOS 14 support
 
