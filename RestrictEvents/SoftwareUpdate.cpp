@@ -150,7 +150,7 @@ static int my_sysctl_vmm_present(__unused struct sysctl_oid *oidp, __unused void
 	// SYSLOG("supd", "\n\n\n\nsoftwareupdated vmm_present %d - >>> %s <<<<\n\n\n\n", arg2, procname);
 	if (revsbvmmIsSet && (
 		// Always return 1 in recovery/installers
-		(lilu.getRunMode() & LiluAPI::RunningInstallerRecovery != 0) ||
+		(lilu.getRunMode() & LiluAPI::RunningInstallerRecovery) != 0 ||
 		// Otherwise, check if userspace OS updaters/installers
 		(
 		 strcmp(procname, "softwareupdated") == 0 ||
