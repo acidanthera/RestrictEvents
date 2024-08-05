@@ -1,5 +1,8 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.4
+- Added constants for macOS 15 support
+
 #### v1.1.3
 - Expanded `sbvmm` to support more environments:
   - macOS install applications (ex. `Install macOS Sonoma.app`)
