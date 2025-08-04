@@ -1,10 +1,5 @@
 RestrictEvents Changelog
 ========================
-#### v1.1.6
-- Inside `eficheck` IONameMatch:
-  - Remove 2 duplicates
-  - Move specific entries in order to follow alphabetical sort
-
 #### v1.1.5
 - Fixed loading on macOS 10.10 and older due to a MacKernelSDK regression
 
