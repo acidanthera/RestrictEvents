@@ -42,11 +42,13 @@ static const char binPathSPMemoryReporter[]          = "/System/Library/SystemPr
 static const char binPathAboutExtension[]            = "/System/Library/ExtensionKit/Extensions/AboutExtension.appex/Contents/MacOS/AboutExtension";
 
 static const char binPathDiskArbitrationAgent[]     = "/System/Library/Frameworks/DiskArbitration.framework/Versions/A/Support/DiskArbitrationAgent";
+static const char binPathAPFSUserAgent[]            = "/System/Library/CoreServices/APFSUserAgent";
 
 static bool enableMemoryUiPatching;
 static bool enablePciUiPatching;
 static bool enableCpuNamePatching;
 static bool enableDiskArbitrationPatching;
+static bool enableAPFSUserPatching;
 static bool enableAssetPatching;
 static bool enableSbvmmPatching;
 static bool enableF16cPatching;
@@ -78,6 +80,127 @@ static uint8_t findDiskArbitrationPatch[] = { 0x83, 0xF8, 0x02 };
 static uint8_t replDiskArbitrationPatch[] = { 0x83, 0xF8, 0x0F };
 
 const char *procBlacklist[10] = {};
+
+static uint8_t findAPFSUserPatch14[] = {
+  0x00, 0x8B, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< mov rdi, qword [whatever]
+  0x00, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< lea rdx, qword [aIogeneralinter]
+  0x00, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< lea rcx, qword [whatever]
+  0x89, 0x00,                                ///< mov esi, ebx
+  0x00, 0x89, 0x00,                          ///< mov r8, r15
+  0x00, 0x89, 0x00,                          ///< mov r9, r15
+  0xE8, 0x00, 0x00, 0x00, 0x00               ///< call imp___stubs__IOServiceAddInterestNotification
+};
+
+static uint8_t maskAPFSUserPatch14[] = {
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xFF, 0x00,
+  0x00, 0xFF, 0x00,
+  0x00, 0xFF, 0x00,
+  0xFF, 0x00, 0x00, 0x00, 0x00
+};
+
+static uint8_t replAPFSUserPatch14[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x90, 0x90, 0x90, 0x90, 0x90               ///< nop (call imp___stubs__IOServiceAddInterestNotification)
+};
+
+static uint8_t replmaskAPFSUserPatch14[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
+
+
+
+
+
+
+
+static uint8_t findAPFSUserPatch[] = {
+  0x00, 0x8B, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< mov rdi, qword [whatever]
+  0x00, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< lea rdx, qword [aIogeneralinter]
+  0x00, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x00,  ///< lea rcx, qword [whatever]
+  0x00, 0x89, 0x00,                          ///< mov esi, r15d
+  0x00, 0x89, 0x00,                          ///< mov r8, rbx
+  0x00, 0x89, 0x00,                          ///< mov r9, rbx
+  0xE8, 0x00, 0x00, 0x00, 0x00               ///< call imp___stubs__IOServiceAddInterestNotification
+};
+
+static uint8_t maskAPFSUserPatch[] = {
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xFF, 0x00,
+  0x00, 0xFF, 0x00,
+  0x00, 0xFF, 0x00,
+  0xFF, 0x00, 0x00, 0x00, 0x00
+};
+
+static uint8_t replAPFSUserPatch[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x90, 0x90, 0x90, 0x90, 0x90               ///< nop (call imp___stubs__IOServiceAddInterestNotification)
+};
+
+static uint8_t replmaskAPFSUserPatch[] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
+static mach_vm_address_t orig_apfs_announce_hash_mismatch;
+static mach_vm_address_t orig_apfs_notify_hash_mismatch;
+
+static const char *kextapfsPath = { "/System/Library/Extensions/apfs.kext/Contents/MacOS/apfs" };
+
+static KernelPatcher::KextInfo kextapfs = { "com.apple.filesystems.apfs", &kextapfsPath, 1, {true}, {}, KernelPatcher::KextInfo::Unloaded };
+
+static int patched_apfs_announce_hash_mismatch(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8) {
+	return 0;
+};
+
+static int patched_apfs_notify_hash_mismatch(int arg0, int arg1, int arg2) {
+	return 0;
+};
+
+static void processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	// Check if 'apfs.kext' is loaded
+	if (index != kextapfs.loadIndex) {
+		return;
+	}
+
+	// Force '_apfs_announce_hash_mismatch' to return 0
+	// Force '_apfs_notify_hash_mismatch' to return 0
+	KernelPatcher::RouteRequest requests[] = {
+		{"_apfs_announce_hash_mismatch", patched_apfs_announce_hash_mismatch, orig_apfs_announce_hash_mismatch},
+		{"_apfs_notify_hash_mismatch", patched_apfs_notify_hash_mismatch, orig_apfs_notify_hash_mismatch}
+	};
+
+	if (!patcher.routeMultiple(index, requests, address, size)) {
+		SYSLOG("rev", "patcher.routeMultiple for at least one of specified symbols is failed with error %d", patcher.getError());
+		patcher.clearError();
+	}
+}
 
 struct RestrictEventsPolicy {
 
@@ -134,12 +257,32 @@ struct RestrictEventsPolicy {
 					 DBGLOG("rev", "patched %s in SPMemoryReporter.spreporter", reinterpret_cast<const char *>(modelFindPatch));
 					 return;
 				 }
-			} else if (enableDiskArbitrationPatching && UNLIKELY(strcmp(path, binPathDiskArbitrationAgent) == 0)) {
+			} else if (enableDiskArbitrationPatching && getKernelVersion() >= KernelVersion::Mavericks && UNLIKELY(strcmp(path, binPathDiskArbitrationAgent) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
 																									 findDiskArbitrationPatch, sizeof(findDiskArbitrationPatch),
 																									 replDiskArbitrationPatch, sizeof(findDiskArbitrationPatch)))) {
 					DBGLOG("rev", "patched unreadable disk case in DiskArbitrationAgent");
 					return;
+				}
+			} else if (enableAPFSUserPatching && getKernelVersion() >= KernelVersion::Monterey && UNLIKELY(strcmp(path, binPathAPFSUserAgent) == 0)) {
+				if (getKernelVersion() >= KernelVersion::Sonoma) {
+					if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size,
+																									 findAPFSUserPatch14, sizeof(findAPFSUserPatch14),
+																									 maskAPFSUserPatch14, sizeof(findAPFSUserPatch14),
+																									 replAPFSUserPatch14, sizeof(findAPFSUserPatch14),
+																									 replmaskAPFSUserPatch14, sizeof(findAPFSUserPatch14)))) {
+						DBGLOG("rev", "patched Volume Hash Mismatch notification in APFSUserAgent for macOS 14+");
+						return;
+					}
+				} else {
+					if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size,
+																									 findAPFSUserPatch, sizeof(findAPFSUserPatch),
+																									 maskAPFSUserPatch, sizeof(findAPFSUserPatch),
+																									 replAPFSUserPatch, sizeof(findAPFSUserPatch),
+																									 replmaskAPFSUserPatch, sizeof(findAPFSUserPatch)))) {
+						DBGLOG("rev", "patched Volume Hash Mismatch notification in APFSUserAgent for macOS 12+");
+						return;
+					}
 				}
 			} else if (UserPatcher::matchSharedCachePath(path)) {
 				// Model check and CPU name may exist in the same page in AppleSystemInfo.
@@ -364,6 +507,9 @@ struct RestrictEventsPolicy {
 		if (strstr(value, "diskread", strlen("diskread"))) {
 			enableDiskArbitrationPatching = true;
 		}
+		if (strstr(value, "hashmismatch", strlen("hashmismatch"))) {
+			enableAPFSUserPatching = true;
+		}
 		if (strstr(value, "asset", strlen("asset"))) {
 			enableAssetPatching = true;
 		}
@@ -545,6 +691,12 @@ PluginConfiguration ADDPR(config) {
 			if (modelFindPatch != nullptr || needsCpuNamePatch || enableDiskArbitrationPatching ||
 				(getKernelVersion() >= KernelVersion::Monterey ||
 				(getKernelVersion() == KernelVersion::BigSur && getKernelMinorVersion() >= 4))) {
+				if (enableAPFSUserPatching && getKernelVersion() >= KernelVersion::Monterey) {
+					lilu.onKextLoadForce(&kextapfs, 1,
+					[](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+						processKext(patcher, index, address, size);
+					}, nullptr);
+				}
 				lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 					if ((lilu.getRunMode() & LiluAPI::RunningNormal) != 0) {
 						if (needsCpuNamePatch) RestrictEventsPolicy::calculatePatchedBrandString();

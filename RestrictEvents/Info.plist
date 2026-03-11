@@ -88,13 +88,6 @@
 				<string>pci8086,3b12</string>
 				<string>pci8086,3b14</string>
 				<string>pci8086,3b16</string>
-				<string>pci8086,8c44</string>
-				<string>pci8086,8c4b</string>
-				<string>pci8086,8cc1</string>
-				<string>pci8086,8cc2</string>
-				<string>pci8086,8cc3</string>
-				<string>pci8086,8cc4</string>
-				<string>pci8086,8cc6</string>
 				<string>pci8086,8c41</string>
 				<string>pci8086,8c42</string>
 				<string>pci8086,8c44</string>
@@ -110,8 +103,16 @@
 				<string>pci8086,8c54</string>
 				<string>pci8086,8c56</string>
 				<string>pci8086,8c5c</string>
+				<string>pci8086,8cc1</string>
+				<string>pci8086,8cc2</string>
+				<string>pci8086,8cc3</string>
+				<string>pci8086,8cc4</string>
+				<string>pci8086,8cc6</string>
 				<string>pci8086,8d44</string>
 				<string>pci8086,8d47</string>
+				<string>pci8086,9c41</string>
+				<string>pci8086,9c43</string>
+				<string>pci8086,9c45</string>
 				<string>pci8086,9cc1</string>
 				<string>pci8086,9cc2</string>
 				<string>pci8086,9cc3</string>
@@ -119,9 +120,6 @@
 				<string>pci8086,9cc6</string>
 				<string>pci8086,9cc7</string>
 				<string>pci8086,9cc9</string>
-				<string>pci8086,9c41</string>
-				<string>pci8086,9c43</string>
-				<string>pci8086,9c45</string>
 				<string>pci8086,9d41</string>
 				<string>pci8086,9d43</string>
 				<string>pci8086,9d46</string>

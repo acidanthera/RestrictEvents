@@ -13,7 +13,8 @@ The list of patches currently includes:
 - Disabled `MacBookAir` model memory replacement UI (comes in pair with `SystemMemoryStatus` = `Upgradable` quirk).
 - Disabled `MacPro7,1` PCI Expansion view and RAM view.
 - CPU brand string patch for non-Intel CPUs (can be forced for Intel with `revcpu=1`).
-- Disabled uninitialized disk UI
+- Disabled uninitialized disk UI on 10.9+
+- Disabled APFS Volume Hash Mismatch on macOS 12+
 
 _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0601` for 1, 2, 4, or 6 cores. This is the default in OpenCore for non-natively supported CPUs.
 
@@ -26,7 +27,8 @@ _Note_: Apple CPU identifier must be `0x0F01` for 8 core CPUs or higher and `0x0
   - `memtab` - enable memory tab in System Information on MacBookAir and MacBookPro10,x platforms
   - `pci` - prevent PCI configuration warnings in System Settings on MacPro7,1 platforms
   - `cpuname` - custom CPU name in System Information
-  - `diskread` - disables uninitialized disk warning in Finder
+  - `diskread` - disables uninitialized disk warning in Finder on 10.9+
+  - `hashmismatch` - disables APFS Volume Hash Mismatch on macOS 12+
   - `asset` - allows Content Caching when `sysctl kern.hv_vmm_present` returns `1` on macOS 11.3 or newer
   - `sbvmm` - forces VMM SB model, allowing OTA updates for unsupported models on macOS 11.3 or newer
   - `f16c` - resolve CoreGraphics crashing on Ivy Bridge CPUs by disabling f16c instruction set reporting in macOS 13.3 or newer
