@@ -257,7 +257,7 @@ struct RestrictEventsPolicy {
 					 DBGLOG("rev", "patched %s in SPMemoryReporter.spreporter", reinterpret_cast<const char *>(modelFindPatch));
 					 return;
 				 }
-			} else if (enableDiskArbitrationPatching && UNLIKELY(strcmp(path, binPathDiskArbitrationAgent) == 0)) {
+			} else if (enableDiskArbitrationPatching && getKernelVersion() >= KernelVersion::Mavericks && UNLIKELY(strcmp(path, binPathDiskArbitrationAgent) == 0)) {
 				if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
 																									 findDiskArbitrationPatch, sizeof(findDiskArbitrationPatch),
 																									 replDiskArbitrationPatch, sizeof(findDiskArbitrationPatch)))) {
