@@ -1,5 +1,10 @@
 RestrictEvents Changelog
 ========================
+#### v1.1.7
+- Added `hashmismatch` to `revpatch` in order to disable APFS Volume Hash Mismatch notification in macOS 12+
+- Allow `diskread` patch only in 10.9+ (Disabled uninitialized disk UI is not present in 10.8 or lower)
+- RestrictEfiCheck: remove 2 duplicates entries (pci8086,8c44 and pci8086,8c4b) and move specific entries in order to follow alphabetical sort
+
 #### v1.1.6
 - Added constants for macOS 26 support
 
