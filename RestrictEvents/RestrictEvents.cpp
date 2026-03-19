@@ -13,6 +13,7 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_policy.hpp>
 
+#include "JavaScriptCore.hpp"
 #include "SoftwareUpdate.hpp"
 #include "vnode_types.hpp"
 
@@ -50,6 +51,7 @@ static bool enableDiskArbitrationPatching;
 static bool enableAssetPatching;
 static bool enableSbvmmPatching;
 static bool enableF16cPatching;
+static bool enableJscPatching;
 
 static bool verboseProcessLogging;
 static mach_vm_address_t orgCsValidateFunc;
@@ -141,6 +143,20 @@ struct RestrictEventsPolicy {
 					DBGLOG("rev", "patched unreadable disk case in DiskArbitrationAgent");
 					return;
 				}
+			} else if (enableJscPatching && UNLIKELY(strcmp(path, javascriptCoreCryptexPath) == 0)) {
+				if (getKernelVersion() >= KernelVersion::Sequoia && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreModernOriginal, kJavaScriptCoreModernOriginalMask, kJavaScriptCoreModernPatched, kJavaScriptCoreModernPatchedMask, 1, 0))) {
+					DBGLOG("rev", "patched JavaScriptCore AVX check (modern) in cryptex");
+					return;
+				} else if (getKernelVersion() >= KernelVersion::Sonoma && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreSonomaOriginal, kJavaScriptCoreSonomaOriginalMask, kJavaScriptCoreSonomaPatched, kJavaScriptCoreSonomaPatchedMask, 1, 0))) {
+					DBGLOG("rev", "patched JavaScriptCore AVX check (Sonoma) in cryptex");
+					return;
+				} else if (getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreVenturaOriginal, kJavaScriptCoreVenturaOriginalMask, kJavaScriptCoreVenturaPatched, kJavaScriptCoreVenturaPatchedMask, 1, 0))) {
+					DBGLOG("rev", "patched JavaScriptCore AVX check (Ventura) in cryptex");
+					return;
+				} else {
+					SYSLOG("rev", "failed to patch JavaScriptCore AVX check in cryptex");
+					return;
+				}
 			} else if (UserPatcher::matchSharedCachePath(path)) {
 				// Model check and CPU name may exist in the same page in AppleSystemInfo.
 				if (needsMemPatch && getKernelVersion() >= KernelVersion::Yosemite) {
@@ -155,6 +171,13 @@ struct RestrictEventsPolicy {
 						return;
 					} else if (needsUnlockCoreCount && UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size, findUnlockCoreCount, sizeof(findUnlockCoreCount), replUnlockCoreCount, sizeof(replUnlockCoreCount)))) {
 						DBGLOG("rev", "patched core count in AppleSystemInfo");
+						return;
+					}
+				}
+
+				if (enableJscPatching && getKernelVersion() >= KernelVersion::Sequoia) {
+					if (UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreModernOriginal, kJavaScriptCoreModernOriginalMask, kJavaScriptCoreModernPatched, kJavaScriptCoreModernPatchedMask, 1, 0))) {
+						DBGLOG("rev", "patched JavaScriptCore AVX check in dyld shared cache");
 						return;
 					}
 				}
@@ -372,6 +395,9 @@ struct RestrictEventsPolicy {
 		}
 		if (strstr(value, "f16c", strlen("f16c"))) {
 			enableF16cPatching = true;
+		}
+		if (strstr(value, "jsc", strlen("jsc"))) {
+			enableJscPatching = true;
 		}
 		if (strstr(value, "auto", strlen("auto"))) {
 			// Do not enable Memory and PCI UI patching on real Macs
