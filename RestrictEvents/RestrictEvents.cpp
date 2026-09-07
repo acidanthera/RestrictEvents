@@ -144,16 +144,34 @@ struct RestrictEventsPolicy {
 					return;
 				}
 			} else if (enableJscPatching && UNLIKELY(strcmp(path, javascriptCoreCryptexPath) == 0)) {
+				bool patchedProbeStores = UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
+					kJavaScriptCoreProbeStoresOriginal, sizeof(kJavaScriptCoreProbeStoresOriginal),
+					kJavaScriptCoreProbeStoresPatched, sizeof(kJavaScriptCoreProbeStoresPatched)));
+				bool patchedProbeLoads = UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data), size,
+					kJavaScriptCoreProbeLoadsOriginal, sizeof(kJavaScriptCoreProbeLoadsOriginal),
+					kJavaScriptCoreProbeLoadsPatched, sizeof(kJavaScriptCoreProbeLoadsPatched)));
+				if (patchedProbeStores || patchedProbeLoads) {
+					if (patchedProbeStores && patchedProbeLoads)
+						SYSLOG("rev", "patched JavaScriptCore JIT probe AVX save/restore in cryptex");
+					else
+						SYSLOG("rev", "partially patched JavaScriptCore JIT probe AVX save/restore in cryptex");
+				}
+
+				bool patchedAvxCheck = false;
 				if (getKernelVersion() >= KernelVersion::Sequoia && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreModernOriginal, kJavaScriptCoreModernOriginalMask, kJavaScriptCoreModernPatched, kJavaScriptCoreModernPatchedMask, 1, 0))) {
 					DBGLOG("rev", "patched JavaScriptCore AVX check (modern) in cryptex");
-					return;
+					patchedAvxCheck = true;
 				} else if (getKernelVersion() >= KernelVersion::Sonoma && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreSonomaOriginal, kJavaScriptCoreSonomaOriginalMask, kJavaScriptCoreSonomaPatched, kJavaScriptCoreSonomaPatchedMask, 1, 0))) {
 					DBGLOG("rev", "patched JavaScriptCore AVX check (Sonoma) in cryptex");
-					return;
+					patchedAvxCheck = true;
 				} else if (getKernelVersion() >= KernelVersion::Ventura && UNLIKELY(KernelPatcher::findAndReplaceWithMask(const_cast<void *>(data), size, kJavaScriptCoreVenturaOriginal, kJavaScriptCoreVenturaOriginalMask, kJavaScriptCoreVenturaPatched, kJavaScriptCoreVenturaPatchedMask, 1, 0))) {
 					DBGLOG("rev", "patched JavaScriptCore AVX check (Ventura) in cryptex");
+					patchedAvxCheck = true;
+				}
+
+				if (patchedProbeStores || patchedProbeLoads || patchedAvxCheck)
 					return;
-				} else {
+				else {
 					SYSLOG("rev", "failed to patch JavaScriptCore AVX check in cryptex");
 					return;
 				}
